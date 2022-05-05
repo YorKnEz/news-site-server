@@ -1,0 +1,108 @@
+const { DataSource } = require("apollo-datasource")
+const { News } = require("../database")
+const { getFunctionName, getTitle } = require("../utils")
+const format = require("date-fns/format")
+
+class NewsAPI extends DataSource {
+	constructor() {
+		super()
+	}
+
+	// get the total number of news in the database
+	async getNewsCount() {
+		try {
+			return News.count()
+		} catch (error) {
+			console.error(`Error in ${getFunctionName()}: ${error}`)
+
+			return error
+		}
+	}
+
+	// retrieve the first 20 news after the first 20 * offsetIndex news
+	async getNewsForHome(offsetIndex) {
+		try {
+			const news = await News.findAll({
+				offset: offsetIndex * 2,
+				limit: 2,
+			})
+
+			return news
+		} catch (error) {
+			console.error(`Error in ${getFunctionName()}: ${error}`)
+
+			return error
+		}
+	}
+
+	// retrieve one news with the id passed
+	async getNewsForHomeById(newsId) {
+		try {
+			const news = await News.findAll({
+				where: {
+					id: newsId,
+				},
+			})
+
+			if (!news) throw "News not in our database"
+
+			return news[0].toJSON()
+		} catch (error) {
+			console.error(`Error in ${getFunctionName()}: ${error}`)
+
+			return error
+		}
+	}
+
+	// adds news from RedditAPI to the database
+	// news is an array
+	async addNewsFromReddit(newsData) {
+		try {
+			const news = newsData.map(async ({ data }) => {
+				const newsObject = await News.create({
+					title: getTitle(data.title),
+					authorId: data.author,
+					date: format(data.created * 1000, "MMMM d',' yyyy"),
+					thumbnail: data.thumbnail,
+					subreddit: data.subreddit_name_prefixed,
+					source: data.url,
+					body: "",
+					type: "reddit",
+				})
+
+				return newsObject.toJSON()
+			})
+
+			return Promise.all(news)
+			// return Promise.all(news)
+		} catch (error) {
+			console.error(`Error in ${getFunctionName()}: ${error}`)
+
+			return error
+		}
+	}
+
+	// adds a single news object to the database
+	async addNews(news) {
+		try {
+			const newsObject = await News.create({
+				title: getTitle(news.title),
+				authorId: news.author,
+				date: format(data.created * 1000, "MMMM d',' yyyy"),
+				thumbnail: news.thumbnail,
+				subreddit: news.subreddit_name_prefixed,
+				source: "",
+				body: news.body,
+				type: "created",
+			})
+
+			return newsObject.toJSON()
+		} catch (error) {
+			console.error(`Error in ${getFunctionName()}: ${error}`)
+
+			return error
+		}
+	}
+}
+
+module.exports = NewsAPI
