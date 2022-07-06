@@ -1,6 +1,6 @@
 const { DataSource } = require("apollo-datasource")
 const { News } = require("../database")
-const { getFunctionName, getTitle } = require("../utils")
+const { getFunctionName } = require("../utils")
 const format = require("date-fns/format")
 
 class NewsAPI extends DataSource {
@@ -9,9 +9,13 @@ class NewsAPI extends DataSource {
 	}
 
 	// get the total number of news in the database
-	async getNewsCount() {
+	async getRedditNewsCount() {
 		try {
-			return News.count()
+			return News.count({
+				where: {
+					type: "reddit",
+				},
+			})
 		} catch (error) {
 			console.error(`Error in ${getFunctionName()}: ${error}`)
 
@@ -20,11 +24,14 @@ class NewsAPI extends DataSource {
 	}
 
 	// retrieve the first 20 news after the first 20 * offsetIndex news
-	async getNewsForHome(offsetIndex) {
+	async getNews(offsetIndex, type) {
 		try {
 			const news = await News.findAll({
-				offset: offsetIndex * 2,
-				limit: 2,
+				offset: offsetIndex * 20,
+				limit: 20,
+				where: {
+					type,
+				},
 			})
 
 			return news
@@ -36,7 +43,7 @@ class NewsAPI extends DataSource {
 	}
 
 	// retrieve one news with the id passed
-	async getNewsForHomeById(newsId) {
+	async getNewsById(newsId) {
 		try {
 			const news = await News.findAll({
 				where: {
@@ -60,12 +67,12 @@ class NewsAPI extends DataSource {
 		try {
 			const news = newsData.map(async ({ data }) => {
 				const newsObject = await News.create({
-					title: getTitle(data.title),
+					title: data.title,
 					authorId: data.author,
 					date: format(data.created * 1000, "MMMM d',' yyyy"),
-					thumbnail: data.thumbnail,
+					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
-					source: data.url,
+					source: "https://www.reddit.com" + data.permalink,
 					body: "",
 					type: "reddit",
 				})
@@ -86,7 +93,7 @@ class NewsAPI extends DataSource {
 	async addNews(news) {
 		try {
 			const newsObject = await News.create({
-				title: getTitle(news.title),
+				title: news.title,
 				authorId: news.author,
 				date: format(data.created * 1000, "MMMM d',' yyyy"),
 				thumbnail: news.thumbnail,

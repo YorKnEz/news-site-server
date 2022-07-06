@@ -4,6 +4,7 @@ const typeDefs = gql`
 	type Query {
 		"Query to get news array for the home page"
 		newsForHome(offsetIndex: Int): [News!]!
+		newsForRedditHome(offsetIndex: Int): [News!]!
 		news(id: ID!): News!
 	}
 
@@ -24,7 +25,7 @@ const typeDefs = gql`
 		source: String!
 		"The body of the news"
 		body: String
-		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site"
+		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site)"
 		type: String!
 	}
 
