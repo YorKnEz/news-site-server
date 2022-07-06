@@ -5,13 +5,25 @@ let after = ""
 
 const resolvers = {
 	Query: {
-		// returns an array of news that will be used to populate the homepage
+		// returns an array of news created on the site that will be used to populate the homepage
 		newsForHome: async (_, { offsetIndex }, { dataSources }) => {
 			try {
-				const newsCount = await dataSources.newsAPI.getNewsCount()
+				const news = await dataSources.newsAPI.getNews(offsetIndex, "created")
+
+				return news
+			} catch (error) {
+				console.error(`Error in ${getFunctionName()}: ${error}`)
+
+				return error
+			}
+		},
+		// returns an array of news created on the site that will be used to populate the homepage
+		newsForRedditHome: async (_, { offsetIndex }, { dataSources }) => {
+			try {
+				const newsCount = await dataSources.newsAPI.getRedditNewsCount()
 
 				// first check if there are 20 news available at the current offset
-				if (newsCount < (offsetIndex + 1) * 2) {
+				if (newsCount < (offsetIndex + 1) * 20) {
 					// if not, we fetch 20 news from reddit
 					const { newAfter, fetchedNews } =
 						await dataSources.redditAPI.getNewsFromUkrainianConflict(after)
@@ -24,7 +36,7 @@ const resolvers = {
 					)
 				}
 
-				const news = await dataSources.newsAPI.getNewsForHome(offsetIndex)
+				const news = await dataSources.newsAPI.getNews(offsetIndex, "reddit")
 
 				return news
 			} catch (error) {
@@ -35,7 +47,7 @@ const resolvers = {
 		},
 		news: async (_, { id }, { dataSources }) => {
 			try {
-				const news = await dataSources.newsAPI.getNewsForHomeById(id)
+				const news = await dataSources.newsAPI.getNewsById(id)
 
 				return news
 			} catch (error) {

@@ -9,9 +9,13 @@ class NewsAPI extends DataSource {
 	}
 
 	// get the total number of news in the database
-	async getNewsCount() {
+	async getRedditNewsCount() {
 		try {
-			return News.count()
+			return News.count({
+				where: {
+					type: "reddit",
+				},
+			})
 		} catch (error) {
 			console.error(`Error in ${getFunctionName()}: ${error}`)
 
@@ -23,8 +27,11 @@ class NewsAPI extends DataSource {
 	async getNewsForHome(offsetIndex) {
 		try {
 			const news = await News.findAll({
-				offset: offsetIndex * 2,
-				limit: 2,
+				offset: offsetIndex * 20,
+				limit: 20,
+				where: {
+					type,
+				},
 			})
 
 			return news
@@ -63,9 +70,9 @@ class NewsAPI extends DataSource {
 					title: getTitle(data.title),
 					authorId: data.author,
 					date: format(data.created * 1000, "MMMM d',' yyyy"),
-					thumbnail: data.thumbnail,
+					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
-					source: data.url,
+					source: "https://www.reddit.com" + data.permalink,
 					body: "",
 					type: "reddit",
 				})
