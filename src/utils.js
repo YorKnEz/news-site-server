@@ -3,19 +3,6 @@ function getFunctionName() {
 	return getFunctionName.caller.name
 }
 
-// function that modifies a string in order to have maximum 100 characters
-function getTitle(string) {
-	if (string.length > 100) {
-		const substring = string.substring(0, 96)
-
-		const lastSpaceIndex = substring.lastIndexOf(" ")
-
-		return string.substring(0, lastSpaceIndex) + "..."
-	}
-
-	return string
-}
-
 // removes the query parameters from a image link or returns "default"
 function evaluateImageLink(link) {
 	const isJPG = link.indexOf(".jpg")
@@ -35,6 +22,5 @@ function evaluateImageLink(link) {
 
 module.exports = {
 	getFunctionName,
-	getTitle,
 	evaluateImageLink,
 }

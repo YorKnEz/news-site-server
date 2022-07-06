@@ -25,7 +25,7 @@ const typeDefs = gql`
 		source: String!
 		"The body of the news"
 		body: String
-		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site"
+		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site)"
 		type: String!
 	}
 

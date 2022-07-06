@@ -10,7 +10,7 @@ class RedditAPI extends RESTDataSource {
 	async getNewsFromNews() {
 		try {
 			// fetch 20 news
-			const response = await this.get(`r/news/new.json?limit=2&after=${after}`)
+			const response = await this.get(`r/news/new.json?limit=20&after=${after}`)
 
 			return {
 				newAfter: response.data.after,
@@ -26,7 +26,7 @@ class RedditAPI extends RESTDataSource {
 		try {
 			// fetch 20 news
 			const response = await this.get(
-				`r/UkrainianConflict/new.json?limit=2&after=${after}`
+				`r/UkrainianConflict/new.json?limit=20&after=${after}`
 			)
 
 			return {
