@@ -21,6 +21,7 @@
 		"apollo-datasource": "^3.3.1",
 		"apollo-datasource-rest": "^3.5.2",
 		"apollo-server": "^3.6.7",
+		"cors": "^2.8.5",
 		"crypto": "^1.0.1",
 		"date-fns": "^2.28.0",
 		"dotenv": "^16.0.0",
