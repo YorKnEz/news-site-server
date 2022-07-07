@@ -27,10 +27,15 @@ const News = sequelize.define("News", {
 		type: DataTypes.STRING,
 		allowNull: true,
 	},
-	// the source of the news
-	source: {
+	// the sources of the news
+	sources: {
 		type: DataTypes.STRING(512),
 		allowNull: false,
+	},
+	// the tags of the news, that help for better searching
+	tags: {
+		type: DataTypes.STRING(512),
+		allowNull: true,
 	},
 	// the body of the news, the information
 	body: {
