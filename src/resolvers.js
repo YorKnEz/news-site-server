@@ -81,7 +81,17 @@ const resolvers = {
 
 						break
 					case "created":
-						// to do
+						const author = await dataSources.userAPI.getAuthorById(authorId)
+
+						returnData = {
+							id: author.id,
+							fullName: author.fullName,
+							profilePicture: author.profilePicture,
+							// profilePicture: data.icon_img
+							// 	? evaluateImageLink(data.icon_img)
+							// 	: evaluateImageLink(data.snoovatar_img),
+						}
+
 						break
 				}
 

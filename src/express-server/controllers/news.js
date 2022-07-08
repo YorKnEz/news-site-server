@@ -1,5 +1,19 @@
 const { News, User } = require("../../database")
 
+// required for saving images locally
+const multer = require("multer")
+
+const storage = multer.diskStorage({
+	destination: function (req, file, cb) {
+		cb(null, "public")
+	},
+	filename: (req, file, cb) => {
+		cb(null, file.originalname)
+	},
+})
+
+const upload = multer({ storage: storage }).single("file")
+
 exports.create = async (req, res, next) => {
 	try {
 		const user = await User.findOne({
@@ -34,6 +48,20 @@ exports.create = async (req, res, next) => {
 	} catch (e) {
 		next(e)
 	}
+}
+
+exports.uploadThumbnail = async (req, res, next) => {
+	upload(req, res, err => {
+		if (err) {
+			console.log(err)
+			res.status(500).json({
+				message: err,
+			})
+		}
+		res.status(200).json({
+			message: "Successfully uploaded thumbnail.",
+		})
+	})
 }
 
 exports.edit = async (req, res, next) => {
