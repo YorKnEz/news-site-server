@@ -15,8 +15,6 @@ exports.create = async (req, res, next) => {
 			})
 		}
 
-		console.log(user)
-
 		const news = await News.create({
 			title: req.body.title,
 			authorId: user.id,

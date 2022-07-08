@@ -1,4 +1,5 @@
 const { RESTDataSource } = require("apollo-datasource-rest")
+const { getFunctionName } = require("../utils")
 
 class RedditAPI extends RESTDataSource {
 	constructor() {

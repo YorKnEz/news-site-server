@@ -72,7 +72,7 @@ class NewsAPI extends DataSource {
 					date: format(data.created * 1000, "MMMM d',' yyyy"),
 					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
-					source: "https://www.reddit.com" + data.permalink,
+					sources: "https://www.reddit.com" + data.permalink,
 					body: "",
 					type: "reddit",
 				})

@@ -4,8 +4,8 @@ require("dotenv").config()
 const { ApolloServer } = require("apollo-server")
 const typeDefs = require("./schema")
 const resolvers = require("./resolvers")
-const { RedditAPI, NewsAPI } = require("./datasources")
-const { startAuthServer } = require("./auth-server")
+const { RedditAPI, NewsAPI, UserAPI } = require("./datasources")
+const { startAuthServer } = require("./express-server")
 
 // check connection to database
 const { testConnection } = require("./database/sequelize")
@@ -19,6 +19,7 @@ async function startApolloServer() {
 			return {
 				redditAPI: new RedditAPI(),
 				newsAPI: new NewsAPI(),
+				userAPI: new UserAPI(),
 			}
 		},
 		context: ({ req }) => {
