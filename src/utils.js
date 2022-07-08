@@ -1,4 +1,4 @@
-// function that return the name of the function that calls it
+// function that returns the name of the function that calls it
 function getFunctionName() {
 	return getFunctionName.caller.name
 }

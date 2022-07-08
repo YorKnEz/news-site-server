@@ -17,6 +17,8 @@ async function startAuthServer() {
 
 	server.use("/", routers)
 
+	server.use("/public", express.static("public"))
+
 	// port to listen to
 	const authServerPort = process.env.AUTH_SERVER_PORT
 

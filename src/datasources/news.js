@@ -72,7 +72,7 @@ class NewsAPI extends DataSource {
 					date: format(data.created * 1000, "MMMM d',' yyyy"),
 					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
-					source: "https://www.reddit.com" + data.permalink,
+					sources: "https://www.reddit.com" + data.permalink,
 					body: "",
 					type: "reddit",
 				})
@@ -82,28 +82,6 @@ class NewsAPI extends DataSource {
 
 			return Promise.all(news)
 			// return Promise.all(news)
-		} catch (error) {
-			console.error(`Error in ${getFunctionName()}: ${error}`)
-
-			return error
-		}
-	}
-
-	// adds a single news object to the database
-	async addNews(news) {
-		try {
-			const newsObject = await News.create({
-				title: news.title,
-				authorId: news.author,
-				date: format(data.created * 1000, "MMMM d',' yyyy"),
-				thumbnail: news.thumbnail,
-				subreddit: news.subreddit_name_prefixed,
-				source: "",
-				body: news.body,
-				type: "created",
-			})
-
-			return newsObject.toJSON()
 		} catch (error) {
 			console.error(`Error in ${getFunctionName()}: ${error}`)
 

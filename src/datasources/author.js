@@ -10,11 +10,19 @@ class UserAPI extends DataSource {
 	// retrieve the author with the id authorId
 	async getAuthorById(authorId) {
 		try {
-			const author = await User.findAll({
+			const author = await User.findOne({
 				where: {
 					id: authorId,
+					type: "author",
 				},
 			})
+
+			if (!author) {
+				throw {
+					status: 404,
+					message: "Author not found.",
+				}
+			}
 
 			return author
 		} catch (error) {

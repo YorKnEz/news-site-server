@@ -22,7 +22,9 @@ const typeDefs = gql`
 		"The subreddit the news originates from prefixed with r/"
 		subreddit: String
 		"The source of the news"
-		source: String!
+		sources: String!
+		"The tags of the news, that help for better searching"
+		tags: String
 		"The body of the news"
 		body: String
 		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site)"

@@ -1,22 +1,56 @@
-const { UserJWT } = require("../../database")
+const { UserJWT, User } = require("../../database")
 
+// check if the jwt of the user making the request is valid
 exports.checkJWT = async (req, res, next) => {
-	console.log("Request URL: ", req.originalUrl)
+	try {
+		// console.log("Request URL: ", req.originalUrl)
 
-	const userJWT = await UserJWT.findOne({
-		where: { jwt: req.headers.authorization || "" },
-	})
-
-	if (!userJWT) {
-		next({
-			status: 403,
-			message: "Unauthorized.",
+		const userJWT = await UserJWT.findOne({
+			where: { jwt: req.headers.authorization || "" },
 		})
+
+		if (!userJWT) {
+			next({
+				status: 403,
+				message: "Unauthorized.",
+			})
+		}
+
+		res.locals.userId = userJWT.UserId
+
+		next()
+	} catch (e) {
+		next(e)
 	}
+}
 
-	res.locals.userId = userJWT.UserId
+// check if the user that makes the request is an author
+exports.checkAuthor = async (req, res, next) => {
+	try {
+		const user = await User.findOne({
+			where: {
+				id: res.locals.userId,
+			},
+		})
 
-	next()
+		if (!user) {
+			next({
+				status: 403,
+				message: "Unauthorized.",
+			})
+		}
+
+		if (user.type !== "author") {
+			next({
+				status: 403,
+				message: "Unauthorized. Only authors can create news.",
+			})
+		}
+
+		next()
+	} catch (e) {
+		next(e)
+	}
 }
 
 exports.errorHandler = (err, req, res, next) => {
