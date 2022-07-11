@@ -4,7 +4,7 @@ function getFunctionName() {
 }
 
 // removes the query parameters from a image link or returns "default"
-function evaluateImageLink(link) {
+const evaluateImageLink = link => {
 	const isJPG = link.indexOf(".jpg")
 
 	if (isJPG > 0) return link.substring(0, isJPG + 4)

@@ -3,8 +3,6 @@ const { UserJWT, User } = require("../../database")
 // check if the jwt of the user making the request is valid
 exports.checkJWT = async (req, res, next) => {
 	try {
-		// console.log("Request URL: ", req.originalUrl)
-
 		const userJWT = await UserJWT.findOne({
 			where: { jwt: req.headers.authorization || "" },
 		})
