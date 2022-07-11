@@ -3,6 +3,8 @@ const { News } = require("../database")
 const { getFunctionName } = require("../utils")
 const format = require("date-fns/format")
 
+const newsToFetch = 2
+
 class NewsAPI extends DataSource {
 	constructor() {
 		super()
@@ -23,12 +25,12 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// retrieve the first 20 news after the first 20 * offsetIndex news
+	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news
 	async getNews(offsetIndex, type) {
 		try {
 			const news = await News.findAll({
-				offset: offsetIndex * 20,
-				limit: 20,
+				offset: offsetIndex * newsToFetch,
+				limit: newsToFetch,
 				where: {
 					type,
 				},
