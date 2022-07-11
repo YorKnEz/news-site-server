@@ -16,8 +16,6 @@ const typeDefs = gql`
 		title: String!
 		"The creator of the news"
 		author: Author!
-		"The creation date of the news to display"
-		date: String!
 		"The picture to display in the home page or the news page"
 		thumbnail: String
 		"The subreddit the news originates from prefixed with r/"
@@ -30,7 +28,7 @@ const typeDefs = gql`
 		body: String
 		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site)"
 		type: String!
-		"The creation date of the news unformatted"
+		"The creation date of the news"
 		createdAt: String!
 		"The last time the news was edited"
 		updatedAt: String!

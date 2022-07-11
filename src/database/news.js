@@ -12,11 +12,6 @@ const News = sequelize.define("News", {
 		type: DataTypes.STRING,
 		allowNull: false,
 	},
-	// the creation date
-	date: {
-		type: DataTypes.STRING,
-		allowNull: false,
-	},
 	// the image to be used as a thumbnail for the news
 	thumbnail: {
 		type: DataTypes.STRING,
