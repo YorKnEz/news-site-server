@@ -20,7 +20,18 @@ function evaluateImageLink(link) {
 	return "../public/default_avatar.png"
 }
 
+const formatTitle = title => {
+	if (title.length > 255) {
+		const newTitle = title.slice(0, 252) + "..."
+
+		return newTitle
+	}
+
+	return title
+}
+
 module.exports = {
 	getFunctionName,
 	evaluateImageLink,
+	formatTitle,
 }

@@ -1,6 +1,6 @@
 const { DataSource } = require("apollo-datasource")
 const { News, User } = require("../database")
-const { getFunctionName } = require("../utils")
+const { getFunctionName, formatTitle } = require("../utils")
 const format = require("date-fns/format")
 
 const newsToFetch = 2
@@ -96,7 +96,7 @@ class NewsAPI extends DataSource {
 		try {
 			const news = newsData.map(async ({ data }) => {
 				const newsObject = await News.create({
-					title: data.title,
+					title: formatTitle(data.title),
 					authorId: data.author,
 					date: format(data.created * 1000, "MMMM d',' yyyy"),
 					thumbnail: "",
