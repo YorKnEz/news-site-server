@@ -32,7 +32,6 @@ exports.create = async (req, res, next) => {
 		const news = await News.create({
 			title: req.body.title,
 			authorId: user.id,
-			date: req.body.date,
 			thumbnail: req.body.thumbnail,
 			subreddit: "",
 			sources: req.body.sources,
@@ -53,8 +52,8 @@ exports.create = async (req, res, next) => {
 exports.uploadThumbnail = async (req, res, next) => {
 	upload(req, res, err => {
 		if (err) {
-			console.log(err)
-			res.status(500).json({
+			next({
+				status: 500,
 				message: err,
 			})
 		}
@@ -66,9 +65,29 @@ exports.uploadThumbnail = async (req, res, next) => {
 
 exports.edit = async (req, res, next) => {
 	try {
+		const user = await User.findOne({
+			where: {
+				email: req.body.authorEmail,
+			},
+		})
+
+		if (!user) {
+			next({
+				status: 400,
+				message: "Invalid email.",
+			})
+		}
+
+		if (res.locals.userId != user.id) {
+			next({
+				status: 403,
+				message: "Unauthorized.",
+			})
+		}
+
 		const newsToEdit = await News.findOne({
 			where: {
-				id: req.body.newsId,
+				id: req.body.id,
 			},
 		})
 
@@ -79,13 +98,13 @@ exports.edit = async (req, res, next) => {
 			})
 		}
 
-		newsToEdit = {
+		await newsToEdit.update({
 			title: req.body.title,
 			thumbnail: req.body.thumbnail,
-			source: req.body.source,
-			tags: req.body.tags,
 			body: req.body.body,
-		}
+			sources: req.body.sources,
+			tags: req.body.tags,
+		})
 
 		await newsToEdit.save()
 
@@ -100,20 +119,40 @@ exports.edit = async (req, res, next) => {
 
 exports.delete = async (req, res, next) => {
 	try {
-		const newsToEdit = await News.findOne({
+		const user = await User.findOne({
 			where: {
-				id: req.body.newsId,
+				id: req.body.author.id,
 			},
 		})
 
-		if (!newsToEdit) {
+		if (!user) {
+			next({
+				status: 404,
+				message: "User not found.",
+			})
+		}
+
+		if (res.locals.userId != user.id) {
+			next({
+				status: 403,
+				message: "Unauthorized.",
+			})
+		}
+
+		const newsToDelete = await News.findOne({
+			where: {
+				id: req.body.id,
+			},
+		})
+
+		if (!newsToDelete) {
 			next({
 				status: 400,
 				message: "Invalid id.",
 			})
 		}
 
-		await newsToEdit.destroy()
+		await newsToDelete.destroy()
 
 		res.status(200).json({
 			message: "Deleted news successfully.",
