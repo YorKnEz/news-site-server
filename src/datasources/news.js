@@ -1,5 +1,5 @@
 const { DataSource } = require("apollo-datasource")
-const { News } = require("../database")
+const { News, User } = require("../database")
 const { getFunctionName } = require("../utils")
 const format = require("date-fns/format")
 
@@ -57,6 +57,32 @@ class NewsAPI extends DataSource {
 
 			return news[0].toJSON()
 		} catch (error) {
+			console.error(`Error in ${getFunctionName()}: ${error}`)
+
+			return error
+		}
+	}
+
+	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news of a certain author
+	async getAuthorNews(offsetIndex, authorEmail) {
+		try {
+			const author = await User.findOne({
+				where: {
+					email: authorEmail,
+				},
+			})
+
+			const news = await News.findAll({
+				offset: offsetIndex * newsToFetch,
+				limit: newsToFetch,
+				where: {
+					authorId: author.id,
+				},
+				order: [["createdAt", "DESC"]],
+			})
+
+			return news
+		} catch (e) {
 			console.error(`Error in ${getFunctionName()}: ${error}`)
 
 			return error

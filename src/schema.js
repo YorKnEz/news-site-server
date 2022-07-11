@@ -5,6 +5,7 @@ const typeDefs = gql`
 		"Query to get news array for the home page"
 		newsForHome(offsetIndex: Int): [News!]!
 		newsForRedditHome(offsetIndex: Int): [News!]!
+		newsForProfile(offsetIndex: Int, authorEmail: String): [News!]
 		news(id: ID!): News!
 	}
 
