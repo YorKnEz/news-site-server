@@ -7,8 +7,25 @@ class RedditAPI extends RESTDataSource {
 		this.baseURL = "https://www.reddit.com/"
 	}
 
+	// fetch news from r/Romania
+	async getNewsFromRomania(after = "") {
+		try {
+			// fetch 20 news
+			const response = await this.get(
+				`r/Romania/new.json?link_flair_text="Știri"&limit=20&after=${after}`
+			)
+
+			return {
+				newAfter: response.data.after,
+				fetchedNews: response.data.children,
+			}
+		} catch (error) {
+			console.error(`Error in ${getFunctionName()}: ${error}`)
+		}
+	}
+
 	// fetch news from r/news
-	async getNewsFromNews() {
+	async getNewsFromNews(after = "") {
 		try {
 			// fetch 20 news
 			const response = await this.get(`r/news/new.json?limit=20&after=${after}`)

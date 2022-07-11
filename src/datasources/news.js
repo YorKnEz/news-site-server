@@ -1,7 +1,9 @@
 const { DataSource } = require("apollo-datasource")
-const { News } = require("../database")
+const { News, User } = require("../database")
 const { getFunctionName } = require("../utils")
 const format = require("date-fns/format")
+
+const newsToFetch = 2
 
 class NewsAPI extends DataSource {
 	constructor() {
@@ -23,15 +25,16 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// retrieve the first 20 news after the first 20 * offsetIndex news
+	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news
 	async getNews(offsetIndex, type) {
 		try {
 			const news = await News.findAll({
-				offset: offsetIndex * 20,
-				limit: 20,
+				offset: offsetIndex * newsToFetch,
+				limit: newsToFetch,
 				where: {
 					type,
 				},
+				order: [["createdAt", "DESC"]],
 			})
 
 			return news
@@ -45,7 +48,7 @@ class NewsAPI extends DataSource {
 	// retrieve one news with the id passed
 	async getNewsById(newsId) {
 		try {
-			const news = await News.findAll({
+			const news = await News.findOne({
 				where: {
 					id: newsId,
 				},
@@ -53,8 +56,34 @@ class NewsAPI extends DataSource {
 
 			if (!news) throw "News not in our database"
 
-			return news[0].toJSON()
+			return news
 		} catch (error) {
+			console.error(`Error in ${getFunctionName()}: ${error}`)
+
+			return error
+		}
+	}
+
+	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news of a certain author
+	async getAuthorNews(offsetIndex, authorEmail) {
+		try {
+			const author = await User.findOne({
+				where: {
+					email: authorEmail,
+				},
+			})
+
+			const news = await News.findAll({
+				offset: offsetIndex * newsToFetch,
+				limit: newsToFetch,
+				where: {
+					authorId: author.id,
+				},
+				order: [["createdAt", "DESC"]],
+			})
+
+			return news
+		} catch (e) {
 			console.error(`Error in ${getFunctionName()}: ${error}`)
 
 			return error

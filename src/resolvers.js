@@ -26,7 +26,7 @@ const resolvers = {
 				if (newsCount < (offsetIndex + 1) * 20) {
 					// if not, we fetch 20 news from reddit
 					const { newAfter, fetchedNews } =
-						await dataSources.redditAPI.getNewsFromUkrainianConflict(after)
+						await dataSources.redditAPI.getNewsFromRomania(after)
 
 					// update after variable with the next value from the reddit api
 					after = newAfter
@@ -45,6 +45,26 @@ const resolvers = {
 				return error
 			}
 		},
+		// returns an array of news of a certain author to display on his profile
+		newsForProfile: async (
+			_,
+			{ offsetIndex, authorEmail },
+			{ dataSources }
+		) => {
+			try {
+				const news = await dataSources.newsAPI.getAuthorNews(
+					offsetIndex,
+					authorEmail
+				)
+
+				return news
+			} catch (error) {
+				console.error(`Error in ${getFunctionName()}: ${error}`)
+
+				return error
+			}
+		},
+		// returns a unique news with the specified id
 		news: async (_, { id }, { dataSources }) => {
 			try {
 				const news = await dataSources.newsAPI.getNewsById(id)
