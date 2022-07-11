@@ -34,6 +34,7 @@ class NewsAPI extends DataSource {
 				where: {
 					type,
 				},
+				order: [["createdAt", "DESC"]],
 			})
 
 			return news
@@ -47,7 +48,7 @@ class NewsAPI extends DataSource {
 	// retrieve one news with the id passed
 	async getNewsById(newsId) {
 		try {
-			const news = await News.findAll({
+			const news = await News.findOne({
 				where: {
 					id: newsId,
 				},
@@ -55,7 +56,7 @@ class NewsAPI extends DataSource {
 
 			if (!news) throw "News not in our database"
 
-			return news[0].toJSON()
+			return news
 		} catch (error) {
 			console.error(`Error in ${getFunctionName()}: ${error}`)
 
