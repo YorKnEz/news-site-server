@@ -40,6 +40,12 @@ exports.create = async (req, res, next) => {
 			type: "created",
 		})
 
+		await user.update({
+			writtenNews: user.writtenNews + 1,
+		})
+
+		await user.save()
+
 		res.status(200).json({
 			message: "Created news successfully.",
 			news,
@@ -153,6 +159,10 @@ exports.delete = async (req, res, next) => {
 		}
 
 		await newsToDelete.destroy()
+
+		await user.update({
+			writtenNews: user.writtenNews - 1,
+		})
 
 		res.status(200).json({
 			message: "Deleted news successfully.",

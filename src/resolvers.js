@@ -118,6 +118,14 @@ const resolvers = {
 				return returnData
 			} catch (error) {
 				console.error(`Error in ${getFunctionName()}: ${error}`)
+	Author: {
+		following: async ({ id, reqId }, _, { dataSources }) => {
+			try {
+				const result = await dataSources.userfollowAPI.isFollowing(id, reqId)
+
+				return result
+			} catch (error) {
+				console.error(`Error in following: ${error}`)
 
 				return error
 			}

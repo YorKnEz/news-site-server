@@ -58,6 +58,15 @@ exports.register = async (req, res, next) => {
 			type: req.body.type,
 		})
 
+		if (user.type === "author") {
+			await user.update({
+				writtenNews: 0,
+				followers: 0,
+			})
+
+			await user.save()
+		}
+
 		// create the temporary token for the user
 		const uuid = uuidv1()
 
@@ -119,6 +128,8 @@ exports.register = async (req, res, next) => {
 				verified: false,
 				profilePicture: user.profilePicture,
 				type: user.type,
+				writtenNews: user?.writtenNews,
+				followers: user?.followers,
 			},
 		})
 	} catch (e) {

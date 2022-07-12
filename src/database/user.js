@@ -45,6 +45,16 @@ const User = sequelize.define("User", {
 		type: DataTypes.STRING,
 		allowNull: false,
 	},
+	// the number of news written by this author
+	writtenNews: {
+		type: DataTypes.INTEGER,
+		allowNull: true,
+	},
+	// the number of followers of this author
+	followers: {
+		type: DataTypes.INTEGER,
+		allowNull: true,
+	},
 })
 
 module.exports = User
