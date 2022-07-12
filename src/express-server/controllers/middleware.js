@@ -8,7 +8,7 @@ exports.checkJWT = async (req, res, next) => {
 		})
 
 		if (!userJWT) {
-			next({
+			return next({
 				status: 403,
 				message: "Unauthorized.",
 			})
@@ -32,14 +32,14 @@ exports.checkAuthor = async (req, res, next) => {
 		})
 
 		if (!user) {
-			next({
+			return next({
 				status: 403,
 				message: "Unauthorized.",
 			})
 		}
 
 		if (user.type !== "author") {
-			next({
+			return next({
 				status: 403,
 				message: "Unauthorized. Only authors can create news.",
 			})

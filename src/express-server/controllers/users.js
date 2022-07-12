@@ -154,7 +154,7 @@ exports.login = async (req, res, next) => {
 
 		// if there is no user found, it means the email was invalid
 		if (!user) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid email.",
 			})
@@ -167,7 +167,7 @@ exports.login = async (req, res, next) => {
 
 		// compare the encrypted passwords, this way the real password of the user is never revealed
 		if (user.password !== password) {
-			next({
+			return next({
 				status: 403,
 				message: "Password does not match.",
 			})
@@ -207,7 +207,7 @@ exports.verify = async (req, res, next) => {
 	try {
 		// if the there is no token in the url, we throw an error
 		if (!req.query.token) {
-			next({
+			return next({
 				status: 400,
 				message: "No token provided",
 			})
@@ -221,7 +221,7 @@ exports.verify = async (req, res, next) => {
 
 		// if there is no session found, it means that either the token is invalid or the email has already been verified
 		if (!userToken) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid token or email already verified",
 			})
@@ -256,7 +256,7 @@ exports.verifyPasswordReset = async (req, res, next) => {
 
 		// if there is no user found, it means that the email is invalid
 		if (!user) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid email.",
 			})
@@ -327,7 +327,7 @@ exports.resetPassword = async (req, res, next) => {
 	try {
 		// if the there is no token in the url, we throw an error
 		if (!req.query.token) {
-			next({
+			return next({
 				status: 400,
 				message: "No token provided",
 			})
@@ -341,7 +341,7 @@ exports.resetPassword = async (req, res, next) => {
 
 		// if there is no session found, it means that either the token is invalid or the email has already been verified
 		if (!userToken) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid token or password reset expired",
 			})
@@ -366,7 +366,7 @@ exports.resetPassword = async (req, res, next) => {
 		// check if the old password matches the current password of the account
 		// if it doesn't we throw an error
 		if (user.password !== password) {
-			next({
+			return next({
 				status: 403,
 				message: "Password does not match.",
 			})
