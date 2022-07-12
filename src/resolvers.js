@@ -1,4 +1,4 @@
-const { getFunctionName, evaluateImageLink } = require("./utils")
+const { evaluateImageLink } = require("./utils")
 
 // this is the variable used to get the next news from the reddit api
 let after = ""
@@ -12,7 +12,7 @@ const resolvers = {
 
 				return news
 			} catch (error) {
-				console.error(`Error in ${getFunctionName()}: ${error}`)
+				console.error(`Error in newsForHome: ${error}`)
 
 				return error
 			}
@@ -40,26 +40,19 @@ const resolvers = {
 
 				return news
 			} catch (error) {
-				console.error(`Error in ${getFunctionName()}: ${error}`)
+				console.error(`Error in newsForRedditHome: ${error}`)
 
 				return error
 			}
 		},
 		// returns an array of news of a certain author to display on his profile
-		newsForProfile: async (
-			_,
-			{ offsetIndex, authorEmail },
-			{ dataSources }
-		) => {
+		newsForProfile: async (_, { offsetIndex, id }, { dataSources }) => {
 			try {
-				const news = await dataSources.newsAPI.getAuthorNews(
-					offsetIndex,
-					authorEmail
-				)
+				const news = await dataSources.newsAPI.getAuthorNews(offsetIndex, id)
 
 				return news
 			} catch (error) {
-				console.error(`Error in ${getFunctionName()}: ${error}`)
+				console.error(`Error in newsForProfile: ${error}`)
 
 				return error
 			}
@@ -71,7 +64,21 @@ const resolvers = {
 
 				return news
 			} catch (error) {
-				console.error(`Error in ${getFunctionName()}: ${error}`)
+				console.error(`Error in news: ${error}`)
+
+				return error
+			}
+		},
+		author: async (_, { id, reqId }, { dataSources }) => {
+			try {
+				const author = await dataSources.userAPI.getAuthorById(id)
+
+				return {
+					...author.toJSON(),
+					reqId: reqId,
+				}
+			} catch (error) {
+				console.error(`Error in author: ${error}`)
 
 				return error
 			}
@@ -91,9 +98,6 @@ const resolvers = {
 						returnData = {
 							id: data.id,
 							fullName: data.name,
-							// profilePicture: data.snoovatar_img
-							// 	? data.snoovatar_img
-							// 	: data.icon_img,
 							profilePicture: data.icon_img
 								? evaluateImageLink(data.icon_img)
 								: evaluateImageLink(data.snoovatar_img),
@@ -107,9 +111,6 @@ const resolvers = {
 							id: author.id,
 							fullName: author.fullName,
 							profilePicture: author.profilePicture,
-							// profilePicture: data.icon_img
-							// 	? evaluateImageLink(data.icon_img)
-							// 	: evaluateImageLink(data.snoovatar_img),
 						}
 
 						break
@@ -117,7 +118,20 @@ const resolvers = {
 
 				return returnData
 			} catch (error) {
-				console.error(`Error in ${getFunctionName()}: ${error}`)
+				console.error(`Error in author: ${error}`)
+
+				return error
+			}
+		},
+	},
+	Author: {
+		following: async ({ id, reqId }, _, { dataSources }) => {
+			try {
+				const result = await dataSources.userfollowAPI.isFollowing(id, reqId)
+
+				return result
+			} catch (error) {
+				console.error(`Error in following: ${error}`)
 
 				return error
 			}

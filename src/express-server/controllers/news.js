@@ -23,9 +23,16 @@ exports.create = async (req, res, next) => {
 		})
 
 		if (!user) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid email.",
+			})
+		}
+
+		if (user.id !== res.locals.userId) {
+			return next({
+				status: 403,
+				message: "Unauthorized",
 			})
 		}
 
@@ -40,6 +47,12 @@ exports.create = async (req, res, next) => {
 			type: "created",
 		})
 
+		await user.update({
+			writtenNews: user.writtenNews + 1,
+		})
+
+		await user.save()
+
 		res.status(200).json({
 			message: "Created news successfully.",
 			news,
@@ -52,7 +65,7 @@ exports.create = async (req, res, next) => {
 exports.uploadThumbnail = async (req, res, next) => {
 	upload(req, res, err => {
 		if (err) {
-			next({
+			return next({
 				status: 500,
 				message: err,
 			})
@@ -72,14 +85,14 @@ exports.edit = async (req, res, next) => {
 		})
 
 		if (!user) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid email.",
 			})
 		}
 
 		if (res.locals.userId != user.id) {
-			next({
+			return next({
 				status: 403,
 				message: "Unauthorized.",
 			})
@@ -92,7 +105,7 @@ exports.edit = async (req, res, next) => {
 		})
 
 		if (!newsToEdit) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid id.",
 			})
@@ -126,14 +139,14 @@ exports.delete = async (req, res, next) => {
 		})
 
 		if (!user) {
-			next({
+			return next({
 				status: 404,
 				message: "User not found.",
 			})
 		}
 
 		if (res.locals.userId != user.id) {
-			next({
+			return next({
 				status: 403,
 				message: "Unauthorized.",
 			})
@@ -146,13 +159,17 @@ exports.delete = async (req, res, next) => {
 		})
 
 		if (!newsToDelete) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid id.",
 			})
 		}
 
 		await newsToDelete.destroy()
+
+		await user.update({
+			writtenNews: user.writtenNews - 1,
+		})
 
 		res.status(200).json({
 			message: "Deleted news successfully.",

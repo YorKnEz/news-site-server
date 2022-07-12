@@ -1,8 +1,3 @@
-// function that returns the name of the function that calls it
-function getFunctionName() {
-	return getFunctionName.caller.name
-}
-
 // removes the query parameters from a image link or returns "default"
 const evaluateImageLink = link => {
 	const isJPG = link.indexOf(".jpg")
@@ -31,7 +26,6 @@ const formatTitle = title => {
 }
 
 module.exports = {
-	getFunctionName,
 	evaluateImageLink,
 	formatTitle,
 }

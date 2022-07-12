@@ -1,6 +1,6 @@
 const { DataSource } = require("apollo-datasource")
 const { News, User } = require("../database")
-const { getFunctionName, formatTitle } = require("../utils")
+const { formatTitle } = require("../utils")
 const format = require("date-fns/format")
 
 const newsToFetch = 2
@@ -19,7 +19,7 @@ class NewsAPI extends DataSource {
 				},
 			})
 		} catch (error) {
-			console.error(`Error in ${getFunctionName()}: ${error}`)
+			console.error(`Error in getRedditNewsCount: ${error}`)
 
 			return error
 		}
@@ -39,7 +39,7 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			console.error(`Error in ${getFunctionName()}: ${error}`)
+			console.error(`Error in getNews: ${error}`)
 
 			return error
 		}
@@ -58,18 +58,18 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			console.error(`Error in ${getFunctionName()}: ${error}`)
+			console.error(`Error in getNewsById: ${error}`)
 
 			return error
 		}
 	}
 
 	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news of a certain author
-	async getAuthorNews(offsetIndex, authorEmail) {
+	async getAuthorNews(offsetIndex, id) {
 		try {
 			const author = await User.findOne({
 				where: {
-					email: authorEmail,
+					id,
 				},
 			})
 
@@ -84,7 +84,7 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (e) {
-			console.error(`Error in ${getFunctionName()}: ${error}`)
+			console.error(`Error in getAuthorNews: ${error}`)
 
 			return error
 		}
@@ -112,7 +112,7 @@ class NewsAPI extends DataSource {
 			return Promise.all(news)
 			// return Promise.all(news)
 		} catch (error) {
-			console.error(`Error in ${getFunctionName()}: ${error}`)
+			console.error(`Error in addNewsFromReddit: ${error}`)
 
 			return error
 		}

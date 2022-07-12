@@ -5,8 +5,9 @@ const typeDefs = gql`
 		"Query to get news array for the home page"
 		newsForHome(offsetIndex: Int): [News!]!
 		newsForRedditHome(offsetIndex: Int): [News!]!
-		newsForProfile(offsetIndex: Int, authorEmail: String): [News!]
+		newsForProfile(offsetIndex: Int, id: ID!): [News!]
 		news(id: ID!): News!
+		author(id: ID!, reqId: ID!): Author!
 	}
 
 	"This is the structure of a news"
@@ -15,7 +16,7 @@ const typeDefs = gql`
 		"The news' title"
 		title: String!
 		"The creator of the news"
-		author: Author!
+		author: AuthorShort!
 		"The picture to display in the home page or the news page"
 		thumbnail: String
 		"The subreddit the news originates from prefixed with r/"
@@ -34,13 +35,36 @@ const typeDefs = gql`
 		updatedAt: String!
 	}
 
-	"An author of a news"
-	type Author {
+	"Author data to be displayed on a news card"
+	type AuthorShort {
 		id: ID!
 		"The name of the author"
 		fullName: String!
 		"The profile picture of the author"
 		profilePicture: String
+	}
+
+	"Complete author data"
+	type Author {
+		id: ID!
+		"The first name of the author"
+		firstName: String!
+		"The last name of the author"
+		lastName: String!
+		"The full name of the author"
+		fullName: String!
+		"EMail of the author"
+		email: String!
+		"Profile picture of the author"
+		profilePicture: String
+		"The number of news written by author"
+		writtenNews: Int!
+		"The number of followers of the author"
+		followers: Int!
+		"The date the account has been created"
+		createdAt: String!
+		"Specifies if the author is being followed by the user"
+		following: Boolean
 	}
 `
 

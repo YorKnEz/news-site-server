@@ -31,7 +31,7 @@ const privateKey = process.env.PRIVATEKEY
 const { v1: uuidv1 } = require("uuid")
 
 // database models
-const { User, UserJWT, Token } = require("../../database")
+const { User, UserJWT, Token, UserFollow } = require("../../database")
 
 // middleware
 const middleware = require("./middleware")
@@ -57,6 +57,15 @@ exports.register = async (req, res, next) => {
 			profilePicture: req.body?.profilePicture,
 			type: req.body.type,
 		})
+
+		if (user.type === "author") {
+			await user.update({
+				writtenNews: 0,
+				followers: 0,
+			})
+
+			await user.save()
+		}
 
 		// create the temporary token for the user
 		const uuid = uuidv1()
@@ -119,6 +128,8 @@ exports.register = async (req, res, next) => {
 				verified: false,
 				profilePicture: user.profilePicture,
 				type: user.type,
+				writtenNews: user?.writtenNews,
+				followers: user?.followers,
 			},
 		})
 	} catch (e) {
@@ -143,7 +154,7 @@ exports.login = async (req, res, next) => {
 
 		// if there is no user found, it means the email was invalid
 		if (!user) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid email.",
 			})
@@ -156,7 +167,7 @@ exports.login = async (req, res, next) => {
 
 		// compare the encrypted passwords, this way the real password of the user is never revealed
 		if (user.password !== password) {
-			next({
+			return next({
 				status: 403,
 				message: "Password does not match.",
 			})
@@ -196,7 +207,7 @@ exports.verify = async (req, res, next) => {
 	try {
 		// if the there is no token in the url, we throw an error
 		if (!req.query.token) {
-			next({
+			return next({
 				status: 400,
 				message: "No token provided",
 			})
@@ -210,7 +221,7 @@ exports.verify = async (req, res, next) => {
 
 		// if there is no session found, it means that either the token is invalid or the email has already been verified
 		if (!userToken) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid token or email already verified",
 			})
@@ -245,7 +256,7 @@ exports.verifyPasswordReset = async (req, res, next) => {
 
 		// if there is no user found, it means that the email is invalid
 		if (!user) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid email.",
 			})
@@ -316,7 +327,7 @@ exports.resetPassword = async (req, res, next) => {
 	try {
 		// if the there is no token in the url, we throw an error
 		if (!req.query.token) {
-			next({
+			return next({
 				status: 400,
 				message: "No token provided",
 			})
@@ -330,7 +341,7 @@ exports.resetPassword = async (req, res, next) => {
 
 		// if there is no session found, it means that either the token is invalid or the email has already been verified
 		if (!userToken) {
-			next({
+			return next({
 				status: 400,
 				message: "Invalid token or password reset expired",
 			})
@@ -355,7 +366,7 @@ exports.resetPassword = async (req, res, next) => {
 		// check if the old password matches the current password of the account
 		// if it doesn't we throw an error
 		if (user.password !== password) {
-			next({
+			return next({
 				status: 403,
 				message: "Password does not match.",
 			})
@@ -386,6 +397,103 @@ exports.signOut = async (req, res, next) => {
 		await userJWT.destroy()
 
 		res.status(200).send("Signed out successfully.")
+	} catch (e) {
+		next(e)
+	}
+}
+
+exports.follow = async (req, res, next) => {
+	try {
+		const author = await User.findOne({
+			where: { id: req.params.authorId, type: "author" },
+		})
+
+		if (!author) {
+			return next({
+				status: 404,
+				message: "Author not found.",
+			})
+		}
+
+		if (author.id === res.locals.userId) {
+			return next({
+				status: 400,
+				message: "You can't follow yourself.",
+			})
+		}
+
+		// check if there is already a follow link between the user and author
+		const link = await UserFollow.findOne({
+			where: {
+				UserId: res.locals.userId,
+				authorId: author.id,
+			},
+		})
+
+		if (link) {
+			return next({
+				status: 400,
+				message: "You already follow this author.",
+			})
+		}
+
+		await UserFollow.create({
+			UserId: res.locals.userId,
+			authorId: author.id,
+		})
+
+		await author.update({
+			followers: author.followers + 1,
+		})
+
+		res.status(200).send("Author followed successfully.")
+	} catch (e) {
+		next(e)
+	}
+}
+
+exports.unfollow = async (req, res, next) => {
+	try {
+		const author = await User.findOne({
+			where: { id: req.params.authorId, type: "author" },
+		})
+
+		if (!author) {
+			return next({
+				status: 404,
+				message: "Author not found.",
+			})
+		}
+
+		if (author.id === res.locals.userId) {
+			return next({
+				status: 400,
+				message: "You can't unfollow yourself.",
+			})
+		}
+
+		// check if there is already a follow link between the user and author
+		const link = await UserFollow.findOne({
+			where: {
+				UserId: res.locals.userId,
+				authorId: author.id,
+			},
+		})
+
+		if (!link) {
+			return next({
+				status: 400,
+				message: "You are not following this author.",
+			})
+		}
+
+		await link.destroy()
+
+		await author.update({
+			followers: author.followers - 1,
+		})
+
+		res.status(200).send("Author unfollowed successfully.")
 	} catch (e) {
 		next(e)
 	}
