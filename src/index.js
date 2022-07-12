@@ -4,7 +4,7 @@ require("dotenv").config()
 const { ApolloServer } = require("apollo-server")
 const typeDefs = require("./schema")
 const resolvers = require("./resolvers")
-const { RedditAPI, NewsAPI, UserAPI } = require("./datasources")
+const { RedditAPI, NewsAPI, UserAPI, UserFollowAPI } = require("./datasources")
 const { startAuthServer } = require("./express-server")
 
 // check connection to database
@@ -20,6 +20,7 @@ async function startApolloServer() {
 				redditAPI: new RedditAPI(),
 				newsAPI: new NewsAPI(),
 				userAPI: new UserAPI(),
+				userfollowAPI: new UserFollowAPI(),
 			}
 		},
 		context: ({ req }) => {

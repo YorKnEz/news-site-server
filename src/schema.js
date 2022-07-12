@@ -16,7 +16,7 @@ const typeDefs = gql`
 		"The news' title"
 		title: String!
 		"The creator of the news"
-		author: Author!
+		author: AuthorShort!
 		"The picture to display in the home page or the news page"
 		thumbnail: String
 		"The subreddit the news originates from prefixed with r/"
@@ -35,8 +35,8 @@ const typeDefs = gql`
 		updatedAt: String!
 	}
 
-	"An author of a news"
-	type Author {
+	"Author data to be displayed on a news card"
+	type AuthorShort {
 		id: ID!
 		"The name of the author"
 		fullName: String!

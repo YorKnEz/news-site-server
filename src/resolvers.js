@@ -72,6 +72,16 @@ const resolvers = {
 				return news
 			} catch (error) {
 				console.error(`Error in ${getFunctionName()}: ${error}`)
+		author: async (_, { id, reqId }, { dataSources }) => {
+			try {
+				const author = await dataSources.userAPI.getAuthorById(id)
+
+				return {
+					...author.toJSON(),
+					reqId: reqId,
+				}
+			} catch (error) {
+				console.error(`Error in author: ${error}`)
 
 				return error
 			}
