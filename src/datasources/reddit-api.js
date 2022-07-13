@@ -1,4 +1,5 @@
 const { RESTDataSource } = require("apollo-datasource-rest")
+const { handleError } = require("../utils")
 
 class RedditAPI extends RESTDataSource {
 	constructor() {
@@ -19,7 +20,7 @@ class RedditAPI extends RESTDataSource {
 				fetchedNews: response.data.children,
 			}
 		} catch (error) {
-			console.error(`Error in getNewsFromRomania: ${error}`)
+			return handleError("getNewsFromRomania", error)
 		}
 	}
 
@@ -34,7 +35,7 @@ class RedditAPI extends RESTDataSource {
 				fetchedNews: response.data.children,
 			}
 		} catch (error) {
-			console.error(`Error in getNewsFromNews: ${error}`)
+			return handleError("getNewsFromNews", error)
 		}
 	}
 
@@ -51,7 +52,7 @@ class RedditAPI extends RESTDataSource {
 				fetchedNews: response.data.children,
 			}
 		} catch (error) {
-			console.error(`Error in getNewsFromUkrainianConflict: ${error}`)
+			return handleError("getNewsFromUkrainianConflict", error)
 		}
 	}
 
@@ -59,7 +60,7 @@ class RedditAPI extends RESTDataSource {
 		try {
 			return this.get(`user/${authorId}/about.json`)
 		} catch (error) {
-			console.error(`Error in getAuthorById: ${error}`)
+			return handleError("getAuthorById", error)
 		}
 	}
 }

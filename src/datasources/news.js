@@ -1,6 +1,6 @@
 const { DataSource } = require("apollo-datasource")
 const { News, User } = require("../database")
-const { formatTitle } = require("../utils")
+const { formatTitle, handleError } = require("../utils")
 const format = require("date-fns/format")
 
 const newsToFetch = 2
@@ -19,9 +19,7 @@ class NewsAPI extends DataSource {
 				},
 			})
 		} catch (error) {
-			console.error(`Error in getRedditNewsCount: ${error}`)
-
-			return error
+			return handleError("getRedditNewsCount", error)
 		}
 	}
 
@@ -39,9 +37,7 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			console.error(`Error in getNews: ${error}`)
-
-			return error
+			return handleError("getNews", error)
 		}
 	}
 
@@ -58,9 +54,7 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			console.error(`Error in getNewsById: ${error}`)
-
-			return error
+			return handleError("getNewsById", error)
 		}
 	}
 
@@ -83,10 +77,8 @@ class NewsAPI extends DataSource {
 			})
 
 			return news
-		} catch (e) {
-			console.error(`Error in getAuthorNews: ${error}`)
-
-			return error
+		} catch (error) {
+			return handleError("getAuthorNews", error)
 		}
 	}
 
@@ -112,9 +104,7 @@ class NewsAPI extends DataSource {
 			return Promise.all(news)
 			// return Promise.all(news)
 		} catch (error) {
-			console.error(`Error in addNewsFromReddit: ${error}`)
-
-			return error
+			return handleError("addNewsFromReddit", error)
 		}
 	}
 }

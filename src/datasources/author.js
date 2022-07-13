@@ -1,5 +1,6 @@
 const { DataSource } = require("apollo-datasource")
 const { User } = require("../database")
+const { handleError } = require("../utils")
 
 class UserAPI extends DataSource {
 	constructor() {
@@ -25,9 +26,7 @@ class UserAPI extends DataSource {
 
 			return author
 		} catch (error) {
-			console.error(`Error in getAuthorById: ${error}`)
-
-			return error
+			return handleError("getAuthorById", error)
 		}
 	}
 }
