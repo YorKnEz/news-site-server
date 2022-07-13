@@ -25,7 +25,18 @@ const formatTitle = title => {
 	return title
 }
 
+const handleError = (location, error) => {
+	if (error.status && error.message) {
+		console.log(`Error ${error.status} in ${location}: ${error.message}`)
+	} else {
+		console.log(`Error: ${error}`)
+	}
+
+	return error
+}
+
 module.exports = {
 	evaluateImageLink,
 	formatTitle,
+	handleError,
 }

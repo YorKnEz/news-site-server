@@ -1,4 +1,4 @@
-const { evaluateImageLink } = require("./utils")
+const { evaluateImageLink, handleError } = require("./utils")
 
 // this is the variable used to get the next news from the reddit api
 let after = ""
@@ -12,9 +12,7 @@ const resolvers = {
 
 				return news
 			} catch (error) {
-				console.error(`Error in newsForHome: ${error}`)
-
-				return error
+				return handleError("newsForHome", error)
 			}
 		},
 		// returns an array of news created on the site that will be used to populate the homepage
@@ -40,9 +38,7 @@ const resolvers = {
 
 				return news
 			} catch (error) {
-				console.error(`Error in newsForRedditHome: ${error}`)
-
-				return error
+				return handleError("newsForRedditHome", error)
 			}
 		},
 		// returns an array of news of a certain author to display on his profile
@@ -52,9 +48,7 @@ const resolvers = {
 
 				return news
 			} catch (error) {
-				console.error(`Error in newsForProfile: ${error}`)
-
-				return error
+				return handleError("newsForProfile", error)
 			}
 		},
 		// returns a unique news with the specified id
@@ -64,9 +58,7 @@ const resolvers = {
 
 				return news
 			} catch (error) {
-				console.error(`Error in news: ${error}`)
-
-				return error
+				return handleError("news", error)
 			}
 		},
 		author: async (_, { id, reqId }, { dataSources }) => {
@@ -78,9 +70,7 @@ const resolvers = {
 					reqId: reqId,
 				}
 			} catch (error) {
-				console.error(`Error in author: ${error}`)
-
-				return error
+				return handleError("author", error)
 			}
 		},
 	},
@@ -118,9 +108,7 @@ const resolvers = {
 
 				return returnData
 			} catch (error) {
-				console.error(`Error in author: ${error}`)
-
-				return error
+				return handleError("author", error)
 			}
 		},
 	},
@@ -131,9 +119,7 @@ const resolvers = {
 
 				return result
 			} catch (error) {
-				console.error(`Error in following: ${error}`)
-
-				return error
+				return handleError("following", error)
 			}
 		},
 	},
