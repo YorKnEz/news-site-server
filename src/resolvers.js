@@ -73,6 +73,34 @@ const resolvers = {
 				return handleError("author", error)
 			}
 		},
+		search: async (_, { search, filter }, { dataSources }) => {
+			try {
+				switch (filter) {
+					case "title":
+						const newsTitle = await dataSources.newsAPI.searchNewsByTitle(
+							search
+						)
+
+						return newsTitle
+					case "body":
+						const newsBody = await dataSources.newsAPI.searchNewsByBody(search)
+
+						return newsBody
+					case "author":
+						const authors = await dataSources.userAPI.searchAuthors(search)
+
+						console.log(authors)
+
+						return authors
+					case "tags":
+						const newsTags = await dataSources.newsAPI.searchNewsByTags(search)
+
+						return newsTags
+				}
+			} catch (error) {
+				return handleError("search", error)
+			}
+		},
 	},
 	News: {
 		author: async ({ authorId, type }, _, { dataSources }) => {
