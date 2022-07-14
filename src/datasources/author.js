@@ -1,4 +1,5 @@
 const { DataSource } = require("apollo-datasource")
+const { Op } = require("sequelize")
 const { User } = require("../database")
 const { handleError } = require("../utils")
 
@@ -27,6 +28,27 @@ class UserAPI extends DataSource {
 			return author
 		} catch (error) {
 			return handleError("getAuthorById", error)
+		}
+	}
+
+	async searchAuthors(name) {
+		try {
+			// find the author whose first, last or full name is matching search query
+			const authors = await User.findAll({
+				where: {
+					[Op.or]: [
+						{ fullName: name },
+						{ firstname: name },
+						{ lastName: name },
+					],
+				},
+			})
+
+			return authors.map(author => ({
+				author,
+			}))
+		} catch (error) {
+			return handleError("searchAuthors", error)
 		}
 	}
 }

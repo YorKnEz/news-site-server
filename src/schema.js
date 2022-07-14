@@ -8,6 +8,7 @@ const typeDefs = gql`
 		newsForProfile(offsetIndex: Int, id: ID!): [News!]
 		news(id: ID!): News!
 		author(id: ID!, reqId: ID!): Author!
+		search(search: String!, filter: String!): [SearchResult!]
 	}
 
 	"This is the structure of a news"
@@ -65,6 +66,15 @@ const typeDefs = gql`
 		createdAt: String!
 		"Specifies if the author is being followed by the user"
 		following: Boolean
+	}
+
+	type SearchResult {
+		"How much the news matches the searching query"
+		matches: Int
+		"The news Object. Required if the filter type is title, body or tags"
+		news: News
+		"The authors Object. Required if the filter type is author"
+		author: Author
 	}
 `
 
