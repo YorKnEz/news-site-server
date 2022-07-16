@@ -102,6 +102,30 @@ const resolvers = {
 			}
 		},
 	},
+		createNews: async (
+			_,
+			{ newsData },
+			{ dataSources, token, userRole, userId }
+		) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (userRole !== "author")
+					throw new ForbiddenError("You must be an author to do this.")
+
+				const newsId = await dataSources.newsAPI.createNews(newsData, userId)
+
+				return {
+					code: 200,
+					success: true,
+					message: "The news has been successfully created",
+					id: newsId,
+				}
+			} catch (error) {
+				return handleError("createNews", error)
+			}
+		},
 	News: {
 		author: async ({ authorId, type }, _, { dataSources }) => {
 			try {

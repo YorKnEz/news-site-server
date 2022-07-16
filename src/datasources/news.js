@@ -229,6 +229,42 @@ class NewsAPI extends DataSource {
 			return handleError("searchNewsByTags", error)
 		}
 	}
+
+	async createNews(newsData, userId) {
+		try {
+			// get the user that made the request
+			const user = await User.findOne({
+				where: {
+					id: userId,
+				},
+			})
+
+			// create the news
+			const news = await News.create({
+				title: newsData.title,
+				authorId: user.id,
+				thumbnail: newsData.thumbnail,
+				sources: newsData.sources,
+				tags: newsData.tags,
+				body: newsData.body,
+				type: "created",
+			})
+
+			// increment the users writtenNews
+			await user.update({
+				writtenNews: user.writtenNews + 1,
+			})
+
+			// save the changes to the user
+			await user.save()
+
+			// return the id of the news
+			return news.id
+		} catch (error) {
+			return handleError("createNews", error)
+		}
+	}
+
 }
 
 module.exports = NewsAPI

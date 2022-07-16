@@ -11,6 +11,29 @@ const typeDefs = gql`
 		search(search: String!, filter: String!): [SearchResult!]
 	}
 
+	type Mutation {
+		createNews(newsData: NewsInput!): CreateNewsResponse!
+	}
+
+	input NewsInput {
+		title: String!
+		thumbnail: String!
+		sources: String!
+		tags: String!
+		body: String!
+	}
+
+	type CreateNewsResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"The id of the news that has been created"
+		id: ID!
+	}
+
 	"This is the structure of a news"
 	type News {
 		id: ID!
