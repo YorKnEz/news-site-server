@@ -21,6 +21,7 @@ const News = sequelize.define("News", {
 	subreddit: {
 		type: DataTypes.STRING,
 		allowNull: true,
+		defaultValue: "",
 	},
 	// the sources of the news
 	sources: {

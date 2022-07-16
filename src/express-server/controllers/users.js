@@ -38,7 +38,7 @@ const middleware = require("./middleware")
 const { Op } = require("sequelize")
 
 // the port the api is hosted on
-const port = process.env.AUTH_SERVER_PORT
+const port = process.env.EXPRESS_SERVER_PORT
 
 exports.register = async (req, res, next) => {
 	try {

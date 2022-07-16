@@ -171,6 +171,8 @@ exports.delete = async (req, res, next) => {
 			writtenNews: user.writtenNews - 1,
 		})
 
+		await user.save()
+
 		res.status(200).json({
 			message: "Deleted news successfully.",
 		})

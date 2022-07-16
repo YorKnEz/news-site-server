@@ -74,7 +74,6 @@ const resolvers = {
 
 				return {
 					...author.toJSON(),
-					reqId: reqId,
 				}
 			} catch (error) {
 				return handleError("author", error)
@@ -98,8 +97,6 @@ const resolvers = {
 						return newsBody
 					case "author":
 						const authors = await dataSources.userAPI.searchAuthors(search)
-
-						console.log(authors)
 
 						return authors
 					case "tags":

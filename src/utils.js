@@ -29,7 +29,7 @@ const handleError = (location, error) => {
 	if (error.status && error.message) {
 		console.log(`Error ${error.status} in ${location}: ${error.message}`)
 	} else {
-		console.log(`Error: ${error}`)
+		console.log(`Error in ${location}: ${error}`)
 	}
 
 	return error
