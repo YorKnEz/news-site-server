@@ -38,7 +38,7 @@ const middleware = require("./middleware")
 const { Op } = require("sequelize")
 
 // the port the api is hosted on
-const port = process.env.AUTH_SERVER_PORT
+const port = process.env.EXPRESS_SERVER_PORT
 
 exports.register = async (req, res, next) => {
 	try {
@@ -197,6 +197,30 @@ exports.login = async (req, res, next) => {
 			},
 		})
 	} catch (e) {
+		next(e)
+	}
+}
+
+// authenticates a user based on it's JWT
+// this is required for Apollo access control
+exports.loginJWT = async (req, res, next) => {
+	try {
+		const userJWT = await UserJWT.findOne({ where: { jwt: req.body.token } })
+
+		if (!userJWT) {
+			return next({
+				status: 401,
+				message: "Unauthorized",
+			})
+		}
+
+		const user = await User.findOne({ where: { id: userJWT.UserId } })
+
+		res.status(200).json({
+			message: "Authenticated successfully",
+			user,
+		})
+	} catch (error) {
 		next(e)
 	}
 }

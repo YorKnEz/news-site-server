@@ -3,6 +3,8 @@ const { News, User } = require("../database")
 const { formatTitle, handleError } = require("../utils")
 const format = require("date-fns/format")
 const { Op } = require("sequelize")
+const { ForbiddenError, UserInputError } = require("apollo-server")
+const fs = require("fs")
 
 const newsToFetch = 2
 
@@ -227,6 +229,127 @@ class NewsAPI extends DataSource {
 			return results
 		} catch (error) {
 			return handleError("searchNewsByTags", error)
+		}
+	}
+
+	async createNews(newsData, userId) {
+		try {
+			// get the user that made the request
+			const user = await User.findOne({
+				where: {
+					id: userId,
+				},
+			})
+
+			// create the news
+			const news = await News.create({
+				title: newsData.title,
+				authorId: user.id,
+				thumbnail: newsData.thumbnail,
+				sources: newsData.sources,
+				tags: newsData.tags,
+				body: newsData.body,
+				type: "created",
+			})
+
+			// increment the users writtenNews
+			await user.update({
+				writtenNews: user.writtenNews + 1,
+			})
+
+			// save the changes to the user
+			await user.save()
+
+			// return the id of the news
+			return news.id
+		} catch (error) {
+			return handleError("createNews", error)
+		}
+	}
+
+	async updateNews(newsData, newsId, userId) {
+		try {
+			// get the user that made the request
+			const user = await User.findOne({
+				where: { id: userId },
+			})
+
+			// get the news that he wants to edit
+			const news = await News.findOne({
+				where: { id: newsId },
+			})
+
+			// if there is no news found, the id was invalid
+			if (!news) throw new UserInputError("Invalid id.")
+
+			// check if the author of the news is the same as the user who requested the edit
+			if (news.authorId != userId)
+				throw new ForbiddenError("You are not the author of this news.")
+
+			// update the news
+			await news.update({
+				title: newsData.title,
+				authorId: user.id,
+				thumbnail: newsData.thumbnail,
+				sources: newsData.sources,
+				tags: newsData.tags,
+				body: newsData.body,
+				type: "created",
+			})
+
+			// save changes
+			await news.save()
+
+			// return the updated news
+			return news
+		} catch (error) {
+			return handleError("updateNews", error)
+		}
+	}
+
+	async deleteNews(newsId, userId) {
+		try {
+			// get the user that made the request
+			const user = await User.findOne({
+				where: {
+					id: userId,
+				},
+			})
+
+			// get the news that he wants to edit
+			const news = await News.findOne({
+				where: { id: newsId },
+			})
+
+			// if there is no news found, the id was invalid
+			if (!news) throw new UserInputError("Invalid id.")
+
+			// check if the author of the news is the same as the user who requested the edit
+			if (news.authorId != userId)
+				throw new ForbiddenError("You are not the author of this news.")
+
+			// get the name of the thumbnail as it is saved on the server
+			const ip = process.env.EXPRESS_SERVER_IP
+
+			const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
+
+			// delete the thumbnail from the server
+			fs.unlink(`./public/${thumbnail}`, err => {
+				if (err) console.log(err)
+			})
+
+			// delete the news
+			await news.destroy()
+
+			// update the number of written news of the user
+			await user.update({
+				writtenNews: user.writtenNews - 1,
+			})
+
+			// save the changes
+			await user.save()
+		} catch (error) {
+			return handleError("deleteNews", error)
 		}
 	}
 }

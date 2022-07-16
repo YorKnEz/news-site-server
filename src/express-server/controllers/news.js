@@ -14,6 +14,20 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage }).single("file")
 
+exports.uploadThumbnail = async (req, res, next) => {
+	upload(req, res, err => {
+		if (err) {
+			return next({
+				status: 500,
+				message: err,
+			})
+		}
+		res.status(200).json({
+			message: "Successfully uploaded thumbnail.",
+		})
+	})
+}
+
 exports.create = async (req, res, next) => {
 	try {
 		const user = await User.findOne({
@@ -60,20 +74,6 @@ exports.create = async (req, res, next) => {
 	} catch (e) {
 		next(e)
 	}
-}
-
-exports.uploadThumbnail = async (req, res, next) => {
-	upload(req, res, err => {
-		if (err) {
-			return next({
-				status: 500,
-				message: err,
-			})
-		}
-		res.status(200).json({
-			message: "Successfully uploaded thumbnail.",
-		})
-	})
 }
 
 exports.edit = async (req, res, next) => {
@@ -170,6 +170,8 @@ exports.delete = async (req, res, next) => {
 		await user.update({
 			writtenNews: user.writtenNews - 1,
 		})
+
+		await user.save()
 
 		res.status(200).json({
 			message: "Deleted news successfully.",

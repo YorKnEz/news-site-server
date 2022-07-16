@@ -1,3 +1,4 @@
+const { ForbiddenError, AuthenticationError } = require("apollo-server")
 const { evaluateImageLink, handleError } = require("./utils")
 
 // this is the variable used to get the next news from the reddit api
@@ -42,8 +43,11 @@ const resolvers = {
 			}
 		},
 		// returns an array of news of a certain author to display on his profile
-		newsForProfile: async (_, { offsetIndex, id }, { dataSources }) => {
+		newsForProfile: async (_, { offsetIndex, id }, { dataSources, token }) => {
 			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
 				const news = await dataSources.newsAPI.getAuthorNews(offsetIndex, id)
 
 				return news
@@ -61,20 +65,25 @@ const resolvers = {
 				return handleError("news", error)
 			}
 		},
-		author: async (_, { id, reqId }, { dataSources }) => {
+		author: async (_, { id }, { dataSources, token }) => {
 			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
 				const author = await dataSources.userAPI.getAuthorById(id)
 
 				return {
 					...author.toJSON(),
-					reqId: reqId,
 				}
 			} catch (error) {
 				return handleError("author", error)
 			}
 		},
-		search: async (_, { search, filter }, { dataSources }) => {
+		search: async (_, { search, filter }, { dataSources, token }) => {
 			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
 				switch (filter) {
 					case "title":
 						const newsTitle = await dataSources.newsAPI.searchNewsByTitle(
@@ -89,8 +98,6 @@ const resolvers = {
 					case "author":
 						const authors = await dataSources.userAPI.searchAuthors(search)
 
-						console.log(authors)
-
 						return authors
 					case "tags":
 						const newsTags = await dataSources.newsAPI.searchNewsByTags(search)
@@ -99,6 +106,81 @@ const resolvers = {
 				}
 			} catch (error) {
 				return handleError("search", error)
+			}
+		},
+	},
+	Mutation: {
+		createNews: async (
+			_,
+			{ newsData },
+			{ dataSources, token, userRole, userId }
+		) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (userRole !== "author")
+					throw new ForbiddenError("You must be an author to do this.")
+
+				const newsId = await dataSources.newsAPI.createNews(newsData, userId)
+
+				return {
+					code: 200,
+					success: true,
+					message: "The news has been successfully created",
+					id: newsId,
+				}
+			} catch (error) {
+				return handleError("createNews", error)
+			}
+		},
+		updateNews: async (
+			_,
+			{ newsData, id },
+			{ dataSources, token, userId, userRole }
+		) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (userRole !== "author")
+					throw new ForbiddenError("You must be an author to do this.")
+
+				// handle news update
+				const updatedNews = await dataSources.newsAPI.updateNews(
+					newsData,
+					id,
+					userId
+				)
+
+				return {
+					code: 200,
+					success: true,
+					message: "The news has been successfully updated",
+					news: updatedNews,
+				}
+			} catch (error) {
+				return handleError("updateNews", error)
+			}
+		},
+		deleteNews: async (_, { id }, { dataSources, token, userId, userRole }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (userRole !== "author")
+					throw new ForbiddenError("You must be an author to do this.")
+
+				// handle news delete
+				await dataSources.newsAPI.deleteNews(id, userId)
+
+				return {
+					code: 200,
+					success: true,
+					message: "The news has been successfully deleted",
+				}
+			} catch (error) {
+				return handleError("deleteNews", error)
 			}
 		},
 	},
@@ -141,9 +223,12 @@ const resolvers = {
 		},
 	},
 	Author: {
-		following: async ({ id, reqId }, _, { dataSources }) => {
+		following: async ({ id }, _, { dataSources, token, userId }) => {
 			try {
-				const result = await dataSources.userfollowAPI.isFollowing(id, reqId)
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				const result = await dataSources.userfollowAPI.isFollowing(id, userId)
 
 				return result
 			} catch (error) {
