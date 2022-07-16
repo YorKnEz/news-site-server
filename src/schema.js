@@ -14,6 +14,7 @@ const typeDefs = gql`
 	type Mutation {
 		createNews(newsData: NewsInput!): CreateNewsResponse!
 		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
+		deleteNews(id: ID!): DeleteNewsResponse!
 	}
 
 	input NewsInput {
@@ -44,6 +45,15 @@ const typeDefs = gql`
 		message: String!
 		"Updated news after a successful mutation"
 		news: News
+	}
+
+	type DeleteNewsResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
 	}
 
 	"This is the structure of a news"
