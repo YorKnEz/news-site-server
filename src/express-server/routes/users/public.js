@@ -10,6 +10,8 @@ router.put("/register", users.register)
 
 router.post("/login", users.login)
 
+router.get("/login", users.loginJWT)
+
 router.get("/verify", users.verify)
 
 router.get("/verify-password-reset", users.verifyPasswordReset)

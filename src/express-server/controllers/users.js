@@ -201,6 +201,30 @@ exports.login = async (req, res, next) => {
 	}
 }
 
+// authenticates a user based on it's JWT
+// this is required for Apollo access control
+exports.loginJWT = async (req, res, next) => {
+	try {
+		const userJWT = await UserJWT.findOne({ where: { jwt: req.body.token } })
+
+		if (!userJWT) {
+			return next({
+				status: 401,
+				message: "Unauthorized",
+			})
+		}
+
+		const user = await User.findOne({ where: { id: userJWT.UserId } })
+
+		res.status(200).json({
+			message: "Authenticated successfully",
+			user,
+		})
+	} catch (error) {
+		next(e)
+	}
+}
+
 // email confirmation
 // the verification is done by the user by accessing the link sent in the email with the temporary token in the url
 exports.verify = async (req, res, next) => {
