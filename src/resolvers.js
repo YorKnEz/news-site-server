@@ -1,3 +1,4 @@
+const { ForbiddenError, AuthenticationError } = require("apollo-server")
 const { evaluateImageLink, handleError } = require("./utils")
 
 // this is the variable used to get the next news from the reddit api
@@ -42,8 +43,11 @@ const resolvers = {
 			}
 		},
 		// returns an array of news of a certain author to display on his profile
-		newsForProfile: async (_, { offsetIndex, id }, { dataSources }) => {
+		newsForProfile: async (_, { offsetIndex, id }, { dataSources, token }) => {
 			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
 				const news = await dataSources.newsAPI.getAuthorNews(offsetIndex, id)
 
 				return news
@@ -61,8 +65,11 @@ const resolvers = {
 				return handleError("news", error)
 			}
 		},
-		author: async (_, { id, reqId }, { dataSources }) => {
+		author: async (_, { id }, { dataSources, token }) => {
 			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
 				const author = await dataSources.userAPI.getAuthorById(id)
 
 				return {
@@ -73,8 +80,11 @@ const resolvers = {
 				return handleError("author", error)
 			}
 		},
-		search: async (_, { search, filter }, { dataSources }) => {
+		search: async (_, { search, filter }, { dataSources, token }) => {
 			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
 				switch (filter) {
 					case "title":
 						const newsTitle = await dataSources.newsAPI.searchNewsByTitle(
@@ -216,9 +226,12 @@ const resolvers = {
 		},
 	},
 	Author: {
-		following: async ({ id, reqId }, _, { dataSources }) => {
+		following: async ({ id }, _, { dataSources, token, userId }) => {
 			try {
-				const result = await dataSources.userfollowAPI.isFollowing(id, reqId)
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				const result = await dataSources.userfollowAPI.isFollowing(id, userId)
 
 				return result
 			} catch (error) {
