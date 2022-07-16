@@ -126,6 +126,35 @@ const resolvers = {
 				return handleError("createNews", error)
 			}
 		},
+		updateNews: async (
+			_,
+			{ newsData, id },
+			{ dataSources, token, userId, userRole }
+		) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (userRole !== "author")
+					throw new ForbiddenError("You must be an author to do this.")
+
+				// handle news update
+				const updatedNews = await dataSources.newsAPI.updateNews(
+					newsData,
+					id,
+					userId
+				)
+
+				return {
+					code: 200,
+					success: true,
+					message: "The news has been successfully updated",
+					news: updatedNews,
+				}
+			} catch (error) {
+				return handleError("updateNews", error)
+			}
+		},
 	News: {
 		author: async ({ authorId, type }, _, { dataSources }) => {
 			try {

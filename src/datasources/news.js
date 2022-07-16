@@ -265,6 +265,46 @@ class NewsAPI extends DataSource {
 		}
 	}
 
+	async updateNews(newsData, newsId, userId) {
+		try {
+			// get the user that made the request
+			const user = await User.findOne({
+				where: { id: userId },
+			})
+
+			// get the news that he wants to edit
+			const news = await News.findOne({
+				where: { id: newsId },
+			})
+
+			// if there is no news found, the id was invalid
+			if (!news) throw new UserInputError("Invalid id.")
+
+			// check if the author of the news is the same as the user who requested the edit
+			if (news.authorId != userId)
+				throw new ForbiddenError("You are not the author of this news.")
+
+			// update the news
+			await news.update({
+				title: newsData.title,
+				authorId: user.id,
+				thumbnail: newsData.thumbnail,
+				sources: newsData.sources,
+				tags: newsData.tags,
+				body: newsData.body,
+				type: "created",
+			})
+
+			// save changes
+			await news.save()
+
+			// return the updated news
+			return news
+		} catch (error) {
+			return handleError("updateNews", error)
+		}
+	}
+
 }
 
 module.exports = NewsAPI

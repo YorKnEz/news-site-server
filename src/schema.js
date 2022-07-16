@@ -13,6 +13,7 @@ const typeDefs = gql`
 
 	type Mutation {
 		createNews(newsData: NewsInput!): CreateNewsResponse!
+		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
 	}
 
 	input NewsInput {
@@ -32,6 +33,17 @@ const typeDefs = gql`
 		message: String!
 		"The id of the news that has been created"
 		id: ID!
+	}
+
+	type UpdateNewsResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"Updated news after a successful mutation"
+		news: News
 	}
 
 	"This is the structure of a news"
