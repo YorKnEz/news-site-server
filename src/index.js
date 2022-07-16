@@ -1,7 +1,7 @@
 // start dotenv
 require("dotenv").config()
 
-const { ApolloServer } = require("apollo-server")
+const { ApolloServer, AuthenticationError } = require("apollo-server")
 const typeDefs = require("./schema")
 const resolvers = require("./resolvers")
 const { RedditAPI, NewsAPI, UserAPI, UserFollowAPI } = require("./datasources")
@@ -10,6 +10,10 @@ const { startAuthServer } = require("./express-server")
 // check connection to database
 const { testConnection } = require("./database/sequelize")
 testConnection()
+
+const axios = require("axios")
+
+const authIp = process.env.EXPRESS_SERVER_IP
 
 async function startApolloServer() {
 	const server = new ApolloServer({
@@ -23,18 +27,31 @@ async function startApolloServer() {
 				userfollowAPI: new UserFollowAPI(),
 			}
 		},
-		context: ({ req }) => {
+		context: async ({ req }) => {
 			// get the user token from the headers
-			const token = req.headers.authorization || ""
+			const reqToken = req.headers.authorization
 
-			// try to retrieve an user with the token
-			// const user = getUser(token)
+			// if the token doesn't exist the value of reqToken will be "null" so we take that into account when getting the token
+			const token = reqToken && reqToken !== "null" ? reqToken : ""
 
-			console.log(token)
+			if (token) {
+				const { data } = await axios({
+					method: "get",
+					url: `${authIp}/users/login`,
+					data: {
+						token,
+					},
+				}).catch(error => {
+					throw new AuthenticationError(error.message)
+				})
 
-			// add the user to the context
-			// return { user }
-			return true
+				// add the token to the context
+				return {
+					userId: data.user.id,
+					userRole: data.user.type,
+					token,
+				}
+			}
 		},
 	})
 
