@@ -1,7 +1,7 @@
 module.exports = {
 	News: require("./news"),
-	User: require("./user"),
 	Token: require("./token"),
-	UserJWT: require("./userjwt"),
+	User: require("./user"),
 	UserFollow: require("./userfollow"),
+	UserJWT: require("./userjwt"),
 }

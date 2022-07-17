@@ -1,31 +1,17 @@
-// required for sending the confirmation email
-const nodemailer = require("nodemailer")
-
-const MAIL_USER = process.env.MAIL_USER
-const MAIL_PASS = process.env.MAIL_PASS
-
-const mail = nodemailer.createTransport({
-	service: "gmail",
-	auth: {
-		user: MAIL_USER,
-		pass: MAIL_PASS,
-	},
-})
-
-// the / path
-const path = require("path")
-
-// required for reading the confirmation email html file
-const fs = require("fs")
-const regEx = new RegExp(/[$][{][a-zA-Z0-9._#]*[}]/, "gm")
-
 // requried for encrypting passwords
 const crypto = require("crypto")
+
+// required for reading files from views folder
+const fs = require("fs")
 
 // required for jwt token
 const jwt = require("jsonwebtoken")
 
-const privateKey = process.env.PRIVATEKEY
+// required for sending the confirmation email
+const nodemailer = require("nodemailer")
+
+// the / path
+const path = require("path")
 
 // required for generating a unique id for email verification
 const { v1: uuidv1 } = require("uuid")
@@ -35,10 +21,28 @@ const { User, UserJWT, Token, UserFollow } = require("../../database")
 
 // middleware
 const middleware = require("./middleware")
-const { Op } = require("sequelize")
+
+// required for jwt tokens
+const privateKey = process.env.PRIVATEKEY
+
+// gmail credentials
+const MAIL_USER = process.env.MAIL_USER
+const MAIL_PASS = process.env.MAIL_PASS
 
 // the port the api is hosted on
 const port = process.env.EXPRESS_SERVER_PORT
+
+// required for reading the confirmation email html file
+const regEx = new RegExp(/[$][{][a-zA-Z0-9._#]*[}]/, "gm")
+
+// mail client
+const mail = nodemailer.createTransport({
+	service: "gmail",
+	auth: {
+		user: MAIL_USER,
+		pass: MAIL_PASS,
+	},
+})
 
 exports.register = async (req, res, next) => {
 	try {
@@ -312,7 +316,7 @@ exports.verifyPasswordReset = async (req, res, next) => {
 				mailString.match(regEx),
 				{
 					firstName: user.firstName,
-					port,
+					port: process.env.CLIENT_PORT,
 					uuid,
 				}
 			)

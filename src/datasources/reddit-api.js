@@ -1,4 +1,5 @@
 const { RESTDataSource } = require("apollo-datasource-rest")
+
 const { handleError } = require("../utils")
 
 class RedditAPI extends RESTDataSource {

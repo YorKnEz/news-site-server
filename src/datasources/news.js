@@ -1,10 +1,14 @@
 const { DataSource } = require("apollo-datasource")
+const { ForbiddenError, UserInputError } = require("apollo-server")
+const format = require("date-fns/format")
+const fs = require("fs")
+const { Op } = require("sequelize")
+
 const { News, User } = require("../database")
 const { formatTitle, handleError } = require("../utils")
-const format = require("date-fns/format")
-const { Op } = require("sequelize")
-const { ForbiddenError, UserInputError } = require("apollo-server")
-const fs = require("fs")
+
+// required for getting the thumbnail name of a news to delete it
+const ip = process.env.EXPRESS_SERVER_IP
 
 const newsToFetch = 2
 
@@ -183,7 +187,7 @@ class NewsAPI extends DataSource {
 	async searchNewsByTags(search) {
 		try {
 			let results = {}
-			const searchArr = search.split(" ")
+			const searchArr = search.split(", ")
 
 			await Promise.all(
 				// loop through the search words
@@ -286,6 +290,16 @@ class NewsAPI extends DataSource {
 			if (news.authorId != userId)
 				throw new ForbiddenError("You are not the author of this news.")
 
+			// delete the old thumbnail from the server if there is a new one
+			if (newsData.thumbnail) {
+				const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
+
+				// delete the thumbnail from the server
+				fs.unlink(`./public/${thumbnail}`, err => {
+					if (err) console.log(err)
+				})
+			}
+
 			// update the news
 			await news.update({
 				title: newsData.title,
@@ -327,9 +341,6 @@ class NewsAPI extends DataSource {
 			// check if the author of the news is the same as the user who requested the edit
 			if (news.authorId != userId)
 				throw new ForbiddenError("You are not the author of this news.")
-
-			// get the name of the thumbnail as it is saved on the server
-			const ip = process.env.EXPRESS_SERVER_IP
 
 			const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
 

@@ -19,7 +19,7 @@ const typeDefs = gql`
 
 	input NewsInput {
 		title: String!
-		thumbnail: String!
+		thumbnail: String
 		sources: String!
 		tags: String!
 		body: String!
@@ -43,8 +43,6 @@ const typeDefs = gql`
 		success: Boolean!
 		"Human-readable message for the UI"
 		message: String!
-		"Updated news after a successful mutation"
-		news: News
 	}
 
 	type DeleteNewsResponse {

@@ -1,7 +1,7 @@
-const publicUserRouter = require("./public")
 const privateUserRouter = require("./private")
+const publicUserRouter = require("./public")
 
 module.exports = {
-	publicUserRouter,
 	privateUserRouter,
+	publicUserRouter,
 }

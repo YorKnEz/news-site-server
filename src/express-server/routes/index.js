@@ -1,12 +1,13 @@
 const express = require("express")
-const router = express.Router()
+
+// middleware
+const { errorHandler } = require("../controllers/middleware")
 
 // routes
 const { publicUserRouter, privateUserRouter } = require("./users")
 const newsRouter = require("./news")
 
-// middleware
-const { errorHandler } = require("../controllers/middleware")
+const router = express.Router()
 
 router.use("/users", publicUserRouter)
 

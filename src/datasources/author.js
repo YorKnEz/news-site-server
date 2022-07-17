@@ -1,5 +1,6 @@
 const { DataSource } = require("apollo-datasource")
 const { Op } = require("sequelize")
+
 const { User } = require("../database")
 const { handleError } = require("../utils")
 
