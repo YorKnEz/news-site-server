@@ -1,7 +1,7 @@
-const { News, User } = require("../../database")
-
 // required for saving images locally
 const multer = require("multer")
+
+const { News, User } = require("../../database")
 
 const storage = multer.diskStorage({
 	destination: function (req, file, cb) {

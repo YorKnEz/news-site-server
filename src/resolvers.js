@@ -1,4 +1,5 @@
 const { ForbiddenError, AuthenticationError } = require("apollo-server")
+
 const { evaluateImageLink, handleError } = require("./utils")
 
 // this is the variable used to get the next news from the reddit api

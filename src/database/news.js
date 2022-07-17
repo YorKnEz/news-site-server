@@ -1,5 +1,6 @@
-const { sequelize } = require("./sequelize")
 const { DataTypes } = require("sequelize")
+
+const { sequelize } = require("./sequelize")
 
 const News = sequelize.define("News", {
 	// the title of the news

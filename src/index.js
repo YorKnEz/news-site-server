@@ -2,18 +2,18 @@
 require("dotenv").config()
 
 const { ApolloServer, AuthenticationError } = require("apollo-server")
-const typeDefs = require("./schema")
-const resolvers = require("./resolvers")
-const { RedditAPI, NewsAPI, UserAPI, UserFollowAPI } = require("./datasources")
-const { startAuthServer } = require("./express-server")
-
-// check connection to database
-const { testConnection } = require("./database/sequelize")
-testConnection()
-
 const axios = require("axios")
 
+const { RedditAPI, NewsAPI, UserAPI, UserFollowAPI } = require("./datasources")
+const { testConnection } = require("./database/sequelize")
+const { startAuthServer } = require("./express-server")
+const resolvers = require("./resolvers")
+const typeDefs = require("./schema")
+
 const authIp = process.env.EXPRESS_SERVER_IP
+
+// check connection to database
+testConnection()
 
 async function startApolloServer() {
 	const server = new ApolloServer({

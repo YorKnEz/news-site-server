@@ -1,9 +1,10 @@
 // user handling router
 const express = require("express")
-const router = express.Router()
 
 // route methods implementations
 const users = require("../../controllers/users")
+
+const router = express.Router()
 
 // route definitions
 router.put("/register", users.register)
