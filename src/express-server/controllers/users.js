@@ -316,7 +316,7 @@ exports.verifyPasswordReset = async (req, res, next) => {
 				mailString.match(regEx),
 				{
 					firstName: user.firstName,
-					port,
+					port: process.env.CLIENT_PORT,
 					uuid,
 				}
 			)
