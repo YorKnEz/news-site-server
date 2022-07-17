@@ -187,7 +187,7 @@ class NewsAPI extends DataSource {
 	async searchNewsByTags(search) {
 		try {
 			let results = {}
-			const searchArr = search.split(" ")
+			const searchArr = search.split(", ")
 
 			await Promise.all(
 				// loop through the search words
