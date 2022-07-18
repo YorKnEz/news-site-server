@@ -15,7 +15,7 @@ router.get("/login", users.loginJWT)
 
 router.get("/verify", users.verify)
 
-router.get("/verify-password-reset", users.verifyPasswordReset)
+router.post("/verify-password-reset", users.verifyPasswordReset)
 
 router.post("/reset-password", users.resetPassword)
 

@@ -380,25 +380,10 @@ exports.resetPassword = async (req, res, next) => {
 			where: { id: userToken.UserId },
 		})
 
-		// in order to further reset the password the user must provide both the old password and the new password
-		// encrpy the old password
-		const hash = crypto.createHash("sha256")
-		hash.update(String(req.body.password))
-		const password = hash.digest("hex")
-
 		// encrypt the new password
 		const hash2 = crypto.createHash("sha256")
-		hash2.update(String(req.body.newPassword))
+		hash2.update(String(req.body.password))
 		const newPassword = hash2.digest("hex")
-
-		// check if the old password matches the current password of the account
-		// if it doesn't we throw an error
-		if (user.password !== password) {
-			return next({
-				status: 403,
-				message: "Password does not match.",
-			})
-		}
 
 		// update the password of the user
 		user.password = newPassword
