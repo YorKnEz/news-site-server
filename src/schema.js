@@ -101,6 +101,8 @@ const typeDefs = gql`
 		email: String!
 		"Profile picture of the author"
 		profilePicture: String
+		"The type of the user, can be either user or author"
+		type: String!
 		"The number of news written by author"
 		writtenNews: Int!
 		"The number of followers of the author"
