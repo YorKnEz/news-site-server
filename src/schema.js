@@ -14,6 +14,8 @@ const typeDefs = gql`
 		author(id: ID!): Author!
 		"Gets all matching authors or news matching a search string"
 		search(search: String!, filter: String!): [SearchResult!]
+		"Gets all the followed authors of a user"
+		followedAuthors(offsetIndex: Int): [Author!]
 	}
 
 	type Mutation {

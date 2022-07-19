@@ -1,7 +1,7 @@
 const { DataSource } = require("apollo-datasource")
 const { Op } = require("sequelize")
 
-const { User } = require("../database")
+const { User, UserFollow } = require("../database")
 const { handleError } = require("../utils")
 
 class UserAPI extends DataSource {
@@ -50,6 +50,34 @@ class UserAPI extends DataSource {
 			}))
 		} catch (error) {
 			return handleError("searchAuthors", error)
+		}
+	}
+
+	async getFollowedAuthors(offsetIndex, userId, dataToFetch) {
+		try {
+			const authorIds = await UserFollow.findAll({
+				offset: offsetIndex * dataToFetch,
+				limit: dataToFetch,
+				where: {
+					UserId: userId,
+				},
+				order: [["createdAt", "DESC"]],
+				attributes: ["authorId"],
+			})
+
+			const authors = await Promise.all(
+				authorIds.map(async ({ authorId }) => {
+					const author = await User.findOne({
+						where: { id: authorId },
+					})
+
+					return author.toJSON()
+				})
+			)
+
+			return authors
+		} catch (error) {
+			return handleError("getFollowedAuthors", error)
 		}
 	}
 }
