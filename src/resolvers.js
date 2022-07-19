@@ -5,12 +5,19 @@ const { evaluateImageLink, handleError } = require("./utils")
 // this is the variable used to get the next news from the reddit api
 let after = ""
 
+// used for resolvers that return arrays
+const dataToFetch = 2
+
 const resolvers = {
 	Query: {
 		// returns an array of news created on the site that will be used to populate the homepage
 		newsForHome: async (_, { offsetIndex }, { dataSources }) => {
 			try {
-				const news = await dataSources.newsAPI.getNews(offsetIndex, "created")
+				const news = await dataSources.newsAPI.getNews(
+					offsetIndex,
+					"created",
+					dataToFetch
+				)
 
 				return news
 			} catch (error) {
@@ -22,11 +29,11 @@ const resolvers = {
 			try {
 				const newsCount = await dataSources.newsAPI.getRedditNewsCount()
 
-				// first check if there are 20 news available at the current offset
-				if (newsCount < (offsetIndex + 1) * 20) {
-					// if not, we fetch 20 news from reddit
+				// first check if there are [dataToFetch] news available at the current offset
+				if (newsCount < (offsetIndex + 1) * dataToFetch) {
+					// if not, we fetch [dataToFetch] news from reddit
 					const { newAfter, fetchedNews } =
-						await dataSources.redditAPI.getNewsFromRomania(after)
+						await dataSources.redditAPI.getNewsFromRomania(after, dataToFetch)
 
 					// update after variable with the next value from the reddit api
 					after = newAfter
@@ -36,7 +43,11 @@ const resolvers = {
 					)
 				}
 
-				const news = await dataSources.newsAPI.getNews(offsetIndex, "reddit")
+				const news = await dataSources.newsAPI.getNews(
+					offsetIndex,
+					"reddit",
+					dataToFetch
+				)
 
 				return news
 			} catch (error) {
@@ -49,7 +60,11 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const news = await dataSources.newsAPI.getAuthorNews(offsetIndex, id)
+				const news = await dataSources.newsAPI.getAuthorNews(
+					offsetIndex,
+					id,
+					dataToFetch
+				)
 
 				return news
 			} catch (error) {

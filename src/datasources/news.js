@@ -10,8 +10,6 @@ const { formatTitle, handleError } = require("../utils")
 // required for getting the thumbnail name of a news to delete it
 const ip = process.env.EXPRESS_SERVER_IP
 
-const newsToFetch = 2
-
 class NewsAPI extends DataSource {
 	constructor() {
 		super()
@@ -31,11 +29,11 @@ class NewsAPI extends DataSource {
 	}
 
 	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news
-	async getNews(offsetIndex, type) {
+	async getNews(offsetIndex, type, dataToFetch) {
 		try {
 			const news = await News.findAll({
-				offset: offsetIndex * newsToFetch,
-				limit: newsToFetch,
+				offset: offsetIndex * dataToFetch,
+				limit: dataToFetch,
 				where: {
 					type,
 				},
@@ -66,7 +64,7 @@ class NewsAPI extends DataSource {
 	}
 
 	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news of a certain author
-	async getAuthorNews(offsetIndex, id) {
+	async getAuthorNews(offsetIndex, id, dataToFetch) {
 		try {
 			const author = await User.findOne({
 				where: {
@@ -75,8 +73,8 @@ class NewsAPI extends DataSource {
 			})
 
 			const news = await News.findAll({
-				offset: offsetIndex * newsToFetch,
-				limit: newsToFetch,
+				offset: offsetIndex * dataToFetch,
+				limit: dataToFetch,
 				where: {
 					authorId: author.id,
 				},

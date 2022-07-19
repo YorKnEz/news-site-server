@@ -9,11 +9,11 @@ class RedditAPI extends RESTDataSource {
 	}
 
 	// fetch news from r/Romania
-	async getNewsFromRomania(after = "") {
+	async getNewsFromRomania(after = "", dataToFetch) {
 		try {
-			// fetch 20 news
+			// fetch [dataToFetch] news
 			const response = await this.get(
-				`r/Romania/new.json?link_flair_text="Știri"&limit=20&after=${after}`
+				`r/Romania/new.json?link_flair_text="Știri"&limit=${dataToFetch}&after=${after}`
 			)
 
 			return {
@@ -26,10 +26,12 @@ class RedditAPI extends RESTDataSource {
 	}
 
 	// fetch news from r/news
-	async getNewsFromNews(after = "") {
+	async getNewsFromNews(after = "", dataToFetch) {
 		try {
-			// fetch 20 news
-			const response = await this.get(`r/news/new.json?limit=20&after=${after}`)
+			// fetch [dataToFetch] news
+			const response = await this.get(
+				`r/news/new.json?limit=${dataToFetch}&after=${after}`
+			)
 
 			return {
 				newAfter: response.data.after,
@@ -41,11 +43,11 @@ class RedditAPI extends RESTDataSource {
 	}
 
 	// fetch news from r/UkrainianConflict
-	async getNewsFromUkrainianConflict(after = "") {
+	async getNewsFromUkrainianConflict(after = "", dataToFetch) {
 		try {
-			// fetch 20 news
+			// fetch [dataToFetch] news
 			const response = await this.get(
-				`r/UkrainianConflict/new.json?limit=20&after=${after}`
+				`r/UkrainianConflict/new.json?limit=${dataToFetch}&after=${after}`
 			)
 
 			return {
