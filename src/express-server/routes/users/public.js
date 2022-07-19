@@ -7,7 +7,7 @@ const users = require("../../controllers/users")
 const router = express.Router()
 
 // route definitions
-router.put("/register", users.register)
+router.post("/register", users.register)
 
 router.post("/login", users.login)
 
@@ -17,6 +17,6 @@ router.get("/verify", users.verify)
 
 router.post("/verify-password-reset", users.verifyPasswordReset)
 
-router.post("/reset-password", users.resetPassword)
+router.patch("/reset-password", users.resetPassword)
 
 module.exports = router

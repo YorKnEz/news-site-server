@@ -11,10 +11,10 @@ const router = express.Router()
 // route definitions
 router.use(checkJWT)
 
-router.post("/sign-out", users.signOut)
+router.delete("/sign-out", users.signOut)
 
-router.put("/follow/:authorId", users.follow)
+router.patch("/follow/:authorId", users.follow)
 
-router.put("/unfollow/:authorId", users.unfollow)
+router.patch("/unfollow/:authorId", users.unfollow)
 
 module.exports = router
