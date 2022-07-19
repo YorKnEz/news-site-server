@@ -4,10 +4,15 @@ const typeDefs = gql`
 	type Query {
 		"Query to get news array for the home page"
 		newsForHome(offsetIndex: Int): [News!]!
+		"Query to get reddit news array for the reddit home page"
 		newsForRedditHome(offsetIndex: Int): [News!]!
+		"Gets all the news of a specific author"
 		newsForProfile(offsetIndex: Int, id: ID!): [News!]
+		"Gets a news by id"
 		news(id: ID!): News!
-		author(id: ID!, reqId: ID!): Author!
+		"Gets author info about an author"
+		author(id: ID!): Author!
+		"Gets all matching authors or news matching a search string"
 		search(search: String!, filter: String!): [SearchResult!]
 	}
 
