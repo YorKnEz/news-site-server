@@ -2,9 +2,8 @@
 const express = require("express")
 const cors = require("cors")
 
-// check connection to database
-const { testConnection } = require("../database/sequelize")
-testConnection()
+// required for creating a /public folder on startup
+const fs = require("fs")
 
 async function startAuthServer() {
 	const server = express()
@@ -16,6 +15,12 @@ async function startAuthServer() {
 	server.use(cors())
 
 	server.use("/", routers)
+
+	try {
+		if (!fs.existsSync("./public")) fs.mkdirSync("./public")
+	} catch (error) {
+		console.error(error)
+	}
 
 	server.use("/public", express.static("public"))
 
