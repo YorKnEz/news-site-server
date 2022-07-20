@@ -53,13 +53,14 @@ exports.checkAuthor = async (req, res, next) => {
 
 exports.errorHandler = (err, req, res, next) => {
 	if (err.status && err.message) {
+		console.error(err)
 		console.error(`Error: ${err.status} ${err.message}`)
 
 		res.status(err.status).json({ message: err.message })
 	} else {
 		console.error(`Error: 400 ${err}`)
 
-		res.status(400).json({ error: err })
+		res.status(400).json({ message: err.message })
 	}
 }
 

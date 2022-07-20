@@ -62,7 +62,9 @@ exports.register = async (req, res, next) => {
 			type: req.body.type,
 		})
 
+		// check if the type of the user is author
 		if (user.type === "author") {
+			// append the author stats to the user instance
 			await user.update({
 				writtenNews: 0,
 				followers: 0,
