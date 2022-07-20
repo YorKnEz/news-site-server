@@ -6,7 +6,7 @@ const axios = require("axios")
 
 const { RedditAPI, NewsAPI, UserAPI, UserFollowAPI } = require("./datasources")
 const { testConnection } = require("./database/sequelize")
-const { startAuthServer } = require("./express-server")
+const { startExpressServer } = require("./express-server")
 const resolvers = require("./resolvers")
 const typeDefs = require("./schema")
 
@@ -66,4 +66,4 @@ async function startApolloServer() {
 }
 
 startApolloServer()
-startAuthServer()
+startExpressServer()
