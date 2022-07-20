@@ -5,7 +5,7 @@ const cors = require("cors")
 // required for creating a /public folder on startup
 const fs = require("fs")
 
-async function startAuthServer() {
+async function startExpressServer() {
 	const server = express()
 	server.use(express.json())
 
@@ -36,5 +36,5 @@ async function startAuthServer() {
 }
 
 module.exports = {
-	startAuthServer: startAuthServer,
+	startExpressServer: startExpressServer,
 }
