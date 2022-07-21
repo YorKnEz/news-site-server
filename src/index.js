@@ -28,29 +28,31 @@ async function startApolloServer() {
 			}
 		},
 		context: async ({ req }) => {
-			// get the user token from the headers
-			const reqToken = req.headers.authorization
+			try {
+				// get the user token from the headers
+				const reqToken = req.headers.authorization
 
-			// if the token doesn't exist the value of reqToken will be "null" so we take that into account when getting the token
-			const token = reqToken && reqToken !== "null" ? reqToken : ""
+				// if the token doesn't exist the value of reqToken will be "null" so we take that into account when getting the token
+				const token = reqToken && reqToken !== "null" ? reqToken : ""
 
-			if (token) {
-				const { data } = await axios({
-					method: "get",
-					url: `${authIp}/users/login`,
-					data: {
+				if (token) {
+					const { data } = await axios({
+						method: "get",
+						url: `${authIp}/users/login`,
+						data: {
+							token,
+						},
+					})
+
+					// add the token to the context
+					return {
+						userId: data.user.id,
+						userRole: data.user.type,
 						token,
-					},
-				}).catch(error => {
-					throw new AuthenticationError(error.message)
-				})
-
-				// add the token to the context
-				return {
-					userId: data.user.id,
-					userRole: data.user.type,
-					token,
+					}
 				}
+			} catch (error) {
+				throw new AuthenticationError(error.message)
 			}
 		},
 	})
