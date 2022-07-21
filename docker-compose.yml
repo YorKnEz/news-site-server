@@ -1,0 +1,28 @@
+# define schema version
+version: "3.7"
+# list of containers to run as part of the app
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: /wait-for-it.sh -t 0 db:3306 -- npm start
+    depends_on:
+      - db
+    volumes:
+      - ./:/home/node/app
+      - /home/node/app/node_modules/
+    ports:
+      - 4000:4000 # Apollo
+      - 4001:4001 # Express
+    env_file:
+      - .env
+  db:
+    image: mysql:8.0.29
+    ports:
+      - 3307:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASS}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
