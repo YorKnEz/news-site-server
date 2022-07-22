@@ -4,4 +4,5 @@ module.exports = {
 	User: require("./user"),
 	UserFollow: require("./userfollow"),
 	UserJWT: require("./userjwt"),
+	UserLike: require("./userlike"),
 }
