@@ -1,0 +1,23 @@
+version: "3.7"
+services:
+  server:
+    build: .
+    command: sh -c './wait-for-it.sh -t 0 db:3306 -- npm start'
+    depends_on:
+      - db
+    volumes:
+      - ./:/home/node/app
+      - /home/node/app/node_modules
+    env_file: .env
+    ports:
+      - 4001:4001 # Auth Server
+      - 4000:4000 # Apollo Server
+  db:
+    image: mysql:8.0.26
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASS}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
