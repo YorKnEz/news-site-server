@@ -21,8 +21,11 @@ const typeDefs = gql`
 	}
 
 	type Mutation {
+		"Creates a news based on input"
 		createNews(newsData: NewsInput!): CreateNewsResponse!
+		"Updates existing news in the db based on input"
 		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
+		"Deletes a news by id"
 		deleteNews(id: ID!): DeleteNewsResponse!
 		"Toggle like or dislike news. Action can be either 'like' or 'dislike'"
 		likeNews(action: String!, id: ID!): LikeNewsResponse!
