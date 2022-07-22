@@ -8,9 +8,10 @@ const users = require("../../controllers/users")
 
 const router = express.Router()
 
-// route definitions
+// middlware
 router.use(checkJWT)
 
+// route definitions
 router.delete("/sign-out", users.signOut)
 
 router.patch("/follow/:authorId", users.follow)

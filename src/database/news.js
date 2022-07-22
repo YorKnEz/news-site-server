@@ -45,6 +45,16 @@ const News = sequelize.define("News", {
 		type: DataTypes.STRING,
 		allowNull: false,
 	},
+	likes: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+		defaultValue: 0,
+	},
+	dislikes: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+		defaultValue: 0,
+	},
 })
 
 module.exports = News
