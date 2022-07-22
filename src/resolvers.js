@@ -287,6 +287,13 @@ const resolvers = {
 				return handleError("author", error)
 			}
 		},
+		likeState: async ({ id }, _, { dataSources, userId }) => {
+			try {
+				return dataSources.newsAPI.getLikeState(id, userId)
+			} catch (error) {
+				return handleError("alreadyLiked", error)
+			}
+		},
 	},
 	Author: {
 		following: async ({ id }, _, { dataSources, token, userId }) => {
