@@ -4,7 +4,7 @@ const format = require("date-fns/format")
 const fs = require("fs")
 const { Op } = require("sequelize")
 
-const { News, User } = require("../database")
+const { News, User, UserLike } = require("../database")
 const { formatTitle, handleError } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
@@ -359,6 +359,164 @@ class NewsAPI extends DataSource {
 			await user.save()
 		} catch (error) {
 			return handleError("deleteNews", error)
+		}
+	}
+
+	// method for liking or disliking news based on the action type and the ids of the news and the user
+	// action - 'like' or 'dislike'
+	async likeNews(action, newsId, userId) {
+		try {
+			/*
+				propName - if the user wants to like the news, we update propName of news
+				propName2 - if the user wants to like the news, but he already disliked it, we update propName and propName2 of news
+				message1 - message to display if the user removed the like successfully
+				message2 - message to display if the user liked the news successfully
+			*/
+			const options = {
+				like: {
+					propName: "likes",
+					propName2: "dislikes",
+					message1: "News like removed",
+					message2: "News liked",
+				},
+				dislike: {
+					propName: "dislikes",
+					propName2: "likes",
+					message1: "News dislike removed",
+					message2: "News disliked",
+				},
+			}
+
+			// first check if the news exists
+			const news = await News.findOne({ where: { id: newsId } })
+
+			// if the news doesn't exist, throw an error
+			if (!news) throw new UserInputError("Invalid id.")
+
+			// try to find if the user already liked the news
+			const link1 = await UserLike.findOne({
+				where: {
+					newsId,
+					UserId: userId,
+					type: action,
+				},
+			})
+
+			// if he already liked the news, remove the like
+			if (link1) {
+				// remove the link
+				await link1.destroy()
+
+				// update likes counter
+				await news.update({
+					[options[action].propName]: news[options[action].propName] - 1,
+				})
+
+				// save changes
+				await news.save()
+
+				// return message
+				return {
+					message: options[action].message1,
+					likes: news.likes,
+					dislikes: news.dislikes,
+				}
+			}
+
+			// try to find if the user disliked the news
+			const link2 = await UserLike.findOne({
+				where: {
+					newsId,
+					UserId: userId,
+					type: action === "like" ? "dislike" : "like",
+				},
+			})
+
+			// if he already disliked the news, remove the dislike in order to add the like
+			if (link2) {
+				// remove the link
+				link2.destroy()
+
+				// update dislikes counter
+				await news.update({
+					[options[action].propName2]: news[options[action].propName2] - 1,
+				})
+
+				// save changes
+				await news.save()
+			}
+
+			// create the link between the user and the news
+			await UserLike.create({
+				UserId: userId,
+				newsId: newsId,
+				type: action,
+			})
+
+			// update likes counter
+			await news.update({
+				[options[action].propName]: news[options[action].propName] + 1,
+			})
+
+			// save changes
+			await news.save()
+
+			return {
+				message: options[action].message2,
+				likes: news.likes,
+				dislikes: news.dislikes,
+			}
+		} catch (error) {
+			return handleError("likeNews", error)
+		}
+	}
+
+	async getLikeState(newsId, userId) {
+		try {
+			// find if the user liked or disliked the news
+			const link = await UserLike.findOne({
+				where: {
+					UserId: userId,
+					newsId,
+					type: { [Op.or]: ["like", "dislike"] },
+				},
+			})
+
+			if (!link) return "none"
+
+			return link.type
+		} catch (error) {
+			return handleError("likeState", error)
+		}
+	}
+
+	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news that a certain user liked
+	async getLikedNews(offsetIndex, userId, dataToFetch) {
+		try {
+			// retrieve all the ids of the liked news
+			const likedNewsIds = await UserLike.findAll({
+				offset: offsetIndex * dataToFetch,
+				limit: dataToFetch,
+				where: {
+					UserId: userId,
+					type: "like",
+				},
+				order: [["createdAt", "DESC"]],
+			})
+
+			// get all the news based on the ids
+			const news = await Promise.all(
+				likedNewsIds.map(async ({ newsId }) => {
+					console.log(newsId)
+					const newsById = await News.findOne({ where: { id: newsId } })
+
+					return newsById
+				})
+			)
+
+			return news
+		} catch (error) {
+			return handleError("getNews", error)
 		}
 	}
 }

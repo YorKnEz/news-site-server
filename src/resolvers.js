@@ -1,4 +1,8 @@
-const { ForbiddenError, AuthenticationError } = require("apollo-server")
+const {
+	ForbiddenError,
+	AuthenticationError,
+	UserInputError,
+} = require("apollo-server")
 
 const { evaluateImageLink, handleError } = require("./utils")
 
@@ -144,6 +148,24 @@ const resolvers = {
 				return handleError("followedAuthors", error)
 			}
 		},
+		likedNews: async (_, { offsetIndex }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				const news = await dataSources.newsAPI.getLikedNews(
+					offsetIndex,
+					userId,
+					dataToFetch
+				)
+
+				console.log(news)
+
+				return news
+			} catch (error) {
+				return handleError("likedNews", error)
+			}
+		},
 	},
 	Mutation: {
 		createNews: async (
@@ -219,6 +241,32 @@ const resolvers = {
 				return handleError("deleteNews", error)
 			}
 		},
+		likeNews: async (_, { action, id }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (action === "like" || action === "dislike") {
+					const response = await dataSources.newsAPI.likeNews(
+						action,
+						id,
+						userId
+					)
+
+					return {
+						code: 200,
+						success: true,
+						message: response.message,
+						likes: response.likes,
+						dislikes: response.dislikes,
+					}
+				} else {
+					throw new UserInputError("Invalid action.")
+				}
+			} catch (error) {
+				return handleError("likeNews", error)
+			}
+		},
 	},
 	News: {
 		author: async ({ authorId, type }, _, { dataSources }) => {
@@ -255,6 +303,13 @@ const resolvers = {
 				return returnData
 			} catch (error) {
 				return handleError("author", error)
+			}
+		},
+		likeState: async ({ id }, _, { dataSources, userId }) => {
+			try {
+				return dataSources.newsAPI.getLikeState(id, userId)
+			} catch (error) {
+				return handleError("alreadyLiked", error)
 			}
 		},
 	},

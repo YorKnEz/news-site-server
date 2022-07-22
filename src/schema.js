@@ -16,12 +16,19 @@ const typeDefs = gql`
 		search(search: String!, filter: String!): [SearchResult!]
 		"Gets all the followed authors of a user"
 		followedAuthors(offsetIndex: Int): [Author!]
+		"Gets the liked news by a user"
+		likedNews(offsetIndex: Int): [News!]
 	}
 
 	type Mutation {
+		"Creates a news based on input"
 		createNews(newsData: NewsInput!): CreateNewsResponse!
+		"Updates existing news in the db based on input"
 		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
+		"Deletes a news by id"
 		deleteNews(id: ID!): DeleteNewsResponse!
+		"Toggle like or dislike news. Action can be either 'like' or 'dislike'"
+		likeNews(action: String!, id: ID!): LikeNewsResponse!
 	}
 
 	input NewsInput {
@@ -61,6 +68,19 @@ const typeDefs = gql`
 		message: String!
 	}
 
+	type LikeNewsResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"Updated number of likes"
+		likes: Int!
+		"Updated number of dislikes"
+		dislikes: Int!
+	}
+
 	"This is the structure of a news"
 	type News {
 		id: ID!
@@ -84,6 +104,12 @@ const typeDefs = gql`
 		createdAt: String!
 		"The last time the news was edited"
 		updatedAt: String!
+		"Wether the user already liked or disliked the news. Can be 'like', 'dislike' or 'none'"
+		likeState: String!
+		"The number of likes the post has"
+		likes: Int!
+		"The number of dislikes the post has"
+		dislikes: Int!
 	}
 
 	"Author data to be displayed on a news card"

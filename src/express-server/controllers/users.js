@@ -142,7 +142,7 @@ exports.register = async (req, res, next) => {
 		if (e == "SequelizeUniqueConstraintError: Validation error") {
 			const error = "Email is already used"
 			console.error(`Error: ${error}`)
-			res.status(403).json({ error })
+			res.status(403).json({ message: error })
 		} else {
 			next(e)
 		}
