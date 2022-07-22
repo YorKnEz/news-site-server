@@ -148,6 +148,24 @@ const resolvers = {
 				return handleError("followedAuthors", error)
 			}
 		},
+		likedNews: async (_, { offsetIndex }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				const news = await dataSources.newsAPI.getLikedNews(
+					offsetIndex,
+					userId,
+					dataToFetch
+				)
+
+				console.log(news)
+
+				return news
+			} catch (error) {
+				return handleError("likedNews", error)
+			}
+		},
 	},
 	Mutation: {
 		createNews: async (

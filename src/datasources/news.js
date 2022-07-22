@@ -489,6 +489,36 @@ class NewsAPI extends DataSource {
 			return handleError("likeState", error)
 		}
 	}
+
+	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news that a certain user liked
+	async getLikedNews(offsetIndex, userId, dataToFetch) {
+		try {
+			// retrieve all the ids of the liked news
+			const likedNewsIds = await UserLike.findAll({
+				offset: offsetIndex * dataToFetch,
+				limit: dataToFetch,
+				where: {
+					UserId: userId,
+					type: "like",
+				},
+				order: [["createdAt", "DESC"]],
+			})
+
+			// get all the news based on the ids
+			const news = await Promise.all(
+				likedNewsIds.map(async ({ newsId }) => {
+					console.log(newsId)
+					const newsById = await News.findOne({ where: { id: newsId } })
+
+					return newsById
+				})
+			)
+
+			return news
+		} catch (error) {
+			return handleError("getNews", error)
+		}
+	}
 }
 
 module.exports = NewsAPI

@@ -16,6 +16,8 @@ const typeDefs = gql`
 		search(search: String!, filter: String!): [SearchResult!]
 		"Gets all the followed authors of a user"
 		followedAuthors(offsetIndex: Int): [Author!]
+		"Gets the liked news by a user"
+		likedNews(offsetIndex: Int): [News!]
 	}
 
 	type Mutation {
