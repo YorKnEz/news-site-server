@@ -33,6 +33,7 @@ const News = sequelize.define("News", {
 	tags: {
 		type: DataTypes.STRING(512),
 		allowNull: true,
+		defaultValue: "",
 	},
 	// the body of the news, the information
 	body: {

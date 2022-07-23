@@ -159,8 +159,6 @@ const resolvers = {
 					dataToFetch
 				)
 
-				console.log(news)
-
 				return news
 			} catch (error) {
 				return handleError("likedNews", error)
@@ -309,7 +307,7 @@ const resolvers = {
 			try {
 				return dataSources.newsAPI.getLikeState(id, userId)
 			} catch (error) {
-				return handleError("alreadyLiked", error)
+				return handleError("likeState", error)
 			}
 		},
 	},

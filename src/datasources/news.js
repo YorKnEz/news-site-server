@@ -507,7 +507,6 @@ class NewsAPI extends DataSource {
 			// get all the news based on the ids
 			const news = await Promise.all(
 				likedNewsIds.map(async ({ newsId }) => {
-					console.log(newsId)
 					const newsById = await News.findOne({ where: { id: newsId } })
 
 					return newsById
