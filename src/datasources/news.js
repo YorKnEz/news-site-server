@@ -95,14 +95,12 @@ class NewsAPI extends DataSource {
 				const newsObject = await News.create({
 					title: formatTitle(data.title),
 					authorId: data.author,
-					createdAt: data.created,
+					date: format(data.created * 1000, "MMMM d',' yyyy"),
 					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
 					sources: "https://www.reddit.com" + data.permalink,
 					body: "",
 					type: "reddit",
-					likes: data.ups,
-					dislikes: data.downs,
 				})
 
 				return newsObject.toJSON()
