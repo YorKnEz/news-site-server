@@ -95,12 +95,14 @@ class NewsAPI extends DataSource {
 				const newsObject = await News.create({
 					title: formatTitle(data.title),
 					authorId: data.author,
-					date: format(data.created * 1000, "MMMM d',' yyyy"),
+					createdAt: data.created,
 					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
 					sources: "https://www.reddit.com" + data.permalink,
 					body: "",
 					type: "reddit",
+					likes: data.ups,
+					dislikes: data.downs,
 				})
 
 				return newsObject.toJSON()
@@ -471,7 +473,7 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	async getLikeState(newsId, userId) {
+	async getLikeState(newsId, userId = -1) {
 		try {
 			// find if the user liked or disliked the news
 			const link = await UserLike.findOne({
@@ -486,7 +488,7 @@ class NewsAPI extends DataSource {
 
 			return link.type
 		} catch (error) {
-			return handleError("likeState", error)
+			return handleError("getLikeState", error)
 		}
 	}
 
@@ -507,7 +509,6 @@ class NewsAPI extends DataSource {
 			// get all the news based on the ids
 			const news = await Promise.all(
 				likedNewsIds.map(async ({ newsId }) => {
-					console.log(newsId)
 					const newsById = await News.findOne({ where: { id: newsId } })
 
 					return newsById
@@ -516,7 +517,7 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			return handleError("getNews", error)
+			return handleError("getLikedNews", error)
 		}
 	}
 }
