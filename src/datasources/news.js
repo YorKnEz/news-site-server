@@ -471,7 +471,7 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	async getLikeState(newsId, userId = -1) {
+	async getLikeState(newsId, userId) {
 		try {
 			// find if the user liked or disliked the news
 			const link = await UserLike.findOne({
@@ -486,7 +486,7 @@ class NewsAPI extends DataSource {
 
 			return link.type
 		} catch (error) {
-			return handleError("getLikeState", error)
+			return handleError("likeState", error)
 		}
 	}
 
@@ -515,7 +515,7 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			return handleError("getLikedNews", error)
+			return handleError("getNews", error)
 		}
 	}
 }
