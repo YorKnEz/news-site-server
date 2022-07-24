@@ -293,7 +293,9 @@ const resolvers = {
 		},
 		voteState: async ({ id }, _, { dataSources, userId }) => {
 			try {
-				return dataSources.newsAPI.getLikeState(id, userId)
+				if (userId) return dataSources.newsAPI.getVoteState(id, userId)
+
+				return "none"
 			} catch (error) {
 				return handleError("voteState", error)
 			}
