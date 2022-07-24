@@ -227,13 +227,13 @@ const resolvers = {
 				return handleError("deleteNews", error)
 			}
 		},
-		likeNews: async (_, { action, id }, { dataSources, token, userId }) => {
+		voteNews: async (_, { action, id }, { dataSources, token, userId }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				if (action === "like" || action === "dislike") {
-					const response = await dataSources.newsAPI.likeNews(
+					const response = await dataSources.newsAPI.voteNews(
 						action,
 						id,
 						userId
@@ -250,7 +250,7 @@ const resolvers = {
 					throw new UserInputError("Invalid action.")
 				}
 			} catch (error) {
-				return handleError("likeNews", error)
+				return handleError("voteNews", error)
 			}
 		},
 	},
@@ -291,11 +291,11 @@ const resolvers = {
 				return handleError("author", error)
 			}
 		},
-		likeState: async ({ id }, _, { dataSources, userId }) => {
+		voteState: async ({ id }, _, { dataSources, userId }) => {
 			try {
 				return dataSources.newsAPI.getLikeState(id, userId)
 			} catch (error) {
-				return handleError("likeState", error)
+				return handleError("voteState", error)
 			}
 		},
 	},

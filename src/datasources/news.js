@@ -375,7 +375,7 @@ class NewsAPI extends DataSource {
 
 	// method for liking or disliking news based on the action type and the ids of the news and the user
 	// action - 'like' or 'dislike'
-	async likeNews(action, newsId, userId) {
+	async voteNews(action, newsId, userId) {
 		try {
 			/*
 				propName - if the user wants to like the news, we update propName of news
@@ -478,11 +478,11 @@ class NewsAPI extends DataSource {
 				dislikes: news.dislikes,
 			}
 		} catch (error) {
-			return handleError("likeNews", error)
+			return handleError("voteNews", error)
 		}
 	}
 
-	async getLikeState(newsId, userId) {
+	async getVoteState(newsId, userId) {
 		try {
 			// find if the user liked or disliked the news
 			const link = await UserLike.findOne({
@@ -497,7 +497,7 @@ class NewsAPI extends DataSource {
 
 			return link.type
 		} catch (error) {
-			return handleError("likeState", error)
+			return handleError("voteState", error)
 		}
 	}
 

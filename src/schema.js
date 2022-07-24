@@ -28,7 +28,7 @@ const typeDefs = gql`
 		"Deletes a news by id"
 		deleteNews(id: ID!): DeleteNewsResponse!
 		"Toggle like or dislike news. Action can be either 'like' or 'dislike'"
-		likeNews(action: String!, id: ID!): LikeNewsResponse!
+		voteNews(action: String!, id: ID!): VoteNewsResponse!
 	}
 
 	input NewsInput {
@@ -68,7 +68,7 @@ const typeDefs = gql`
 		message: String!
 	}
 
-	type LikeNewsResponse {
+	type VoteNewsResponse {
 		"Similar to HTTP status code, represents the status of the mutation"
 		code: Int!
 		"Indicated whether the mutation was successful"
@@ -110,7 +110,7 @@ const typeDefs = gql`
 		"The last time the news was edited"
 		updatedAt: String!
 		"Wether the user already liked or disliked the news. Can be 'like', 'dislike' or 'none'"
-		likeState: String!
+		voteState: String!
 		"The number of likes the post has"
 		likes: Int!
 		"The number of dislikes the post has"
