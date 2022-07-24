@@ -24,6 +24,12 @@ const News = sequelize.define("News", {
 		allowNull: true,
 		defaultValue: "",
 	},
+	// the id of the reddit news if its a reddit news
+	redditId: {
+		type: DataTypes.STRING,
+		allowNull: true,
+		unique: true,
+	},
 	// the sources of the news
 	sources: {
 		type: DataTypes.STRING(512),

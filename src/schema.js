@@ -5,7 +5,7 @@ const typeDefs = gql`
 		"Query to get news array for the home page"
 		newsForHome(offsetIndex: Int): [News!]!
 		"Query to get reddit news array for the reddit home page"
-		newsForRedditHome(offsetIndex: Int): [News!]!
+		newsForRedditHome(after: String): NewsForRedditHomeResponse!
 		"Gets all the news of a specific author"
 		newsForProfile(offsetIndex: Int, id: ID!): [News!]
 		"Gets a news by id"
@@ -79,6 +79,11 @@ const typeDefs = gql`
 		likes: Int!
 		"Updated number of dislikes"
 		dislikes: Int!
+	}
+
+	type NewsForRedditHomeResponse {
+		news: [News!]
+		after: String
 	}
 
 	"This is the structure of a news"
