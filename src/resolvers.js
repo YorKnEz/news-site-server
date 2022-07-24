@@ -6,11 +6,8 @@ const {
 
 const { evaluateImageLink, handleError } = require("./utils")
 
-// this is the variable used to get the next news from the reddit api
-let after = ""
-
 // used for resolvers that return arrays
-const dataToFetch = 2
+const dataToFetch = 4
 
 const resolvers = {
 	Query: {
@@ -29,31 +26,22 @@ const resolvers = {
 			}
 		},
 		// returns an array of news created on the site that will be used to populate the homepage
-		newsForRedditHome: async (_, { offsetIndex }, { dataSources }) => {
+		newsForRedditHome: async (_, { after }, { dataSources }) => {
 			try {
-				const newsCount = await dataSources.newsAPI.getRedditNewsCount()
+				// fetch news from r/Romania
+				const { newAfter, fetchedNews } =
+					await dataSources.redditAPI.getNewsFromRomania(after, dataToFetch)
 
-				// first check if there are [dataToFetch] news available at the current offset
-				if (newsCount < (offsetIndex + 1) * dataToFetch) {
-					// if not, we fetch [dataToFetch] news from reddit
-					const { newAfter, fetchedNews } =
-						await dataSources.redditAPI.getNewsFromRomania(after, dataToFetch)
-
-					// update after variable with the next value from the reddit api
-					after = newAfter
-
-					const response2 = await dataSources.newsAPI.addNewsFromReddit(
-						fetchedNews
-					)
-				}
-
-				const news = await dataSources.newsAPI.getNews(
-					offsetIndex,
-					"reddit",
-					dataToFetch
+				// add the newly fetched reddit news to the database
+				const response = await dataSources.newsAPI.addNewsFromReddit(
+					fetchedNews
 				)
 
-				return news
+				// return the news and the offset for the next news
+				return {
+					news: response,
+					after: newAfter,
+				}
 			} catch (error) {
 				return handleError("newsForRedditHome", error)
 			}
@@ -239,13 +227,13 @@ const resolvers = {
 				return handleError("deleteNews", error)
 			}
 		},
-		likeNews: async (_, { action, id }, { dataSources, token, userId }) => {
+		voteNews: async (_, { action, id }, { dataSources, token, userId }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				if (action === "like" || action === "dislike") {
-					const response = await dataSources.newsAPI.likeNews(
+					const response = await dataSources.newsAPI.voteNews(
 						action,
 						id,
 						userId
@@ -262,7 +250,7 @@ const resolvers = {
 					throw new UserInputError("Invalid action.")
 				}
 			} catch (error) {
-				return handleError("likeNews", error)
+				return handleError("voteNews", error)
 			}
 		},
 	},
@@ -303,11 +291,13 @@ const resolvers = {
 				return handleError("author", error)
 			}
 		},
-		likeState: async ({ id }, _, { dataSources, userId }) => {
+		voteState: async ({ id }, _, { dataSources, userId }) => {
 			try {
-				return dataSources.newsAPI.getLikeState(id, userId)
+				if (userId) return dataSources.newsAPI.getVoteState(id, userId)
+
+				return "none"
 			} catch (error) {
-				return handleError("likeState", error)
+				return handleError("voteState", error)
 			}
 		},
 	},

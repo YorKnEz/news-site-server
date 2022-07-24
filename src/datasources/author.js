@@ -42,6 +42,7 @@ class UserAPI extends DataSource {
 						{ firstname: name },
 						{ lastName: name },
 					],
+					type: "author",
 				},
 			})
 

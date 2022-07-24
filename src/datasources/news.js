@@ -91,11 +91,22 @@ class NewsAPI extends DataSource {
 	// news is an array
 	async addNewsFromReddit(newsData) {
 		try {
+			// map through the news
 			const news = newsData.map(async ({ data }) => {
+				// try to find if the current news has already been added
+				const news = await News.findOne({
+					where: { redditId: data.id },
+				})
+
+				// if the news exists, return it
+				if (news) return news.toJSON()
+
+				// if it doesn't exist, create it
 				const newsObject = await News.create({
+					redditId: data.id,
 					title: formatTitle(data.title),
 					authorId: data.author,
-					date: format(data.created * 1000, "MMMM d',' yyyy"),
+					createdAt: data.created,
 					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
 					sources: "https://www.reddit.com" + data.permalink,
@@ -103,11 +114,11 @@ class NewsAPI extends DataSource {
 					type: "reddit",
 				})
 
+				// and return it
 				return newsObject.toJSON()
 			})
 
 			return Promise.all(news)
-			// return Promise.all(news)
 		} catch (error) {
 			return handleError("addNewsFromReddit", error)
 		}
@@ -364,7 +375,7 @@ class NewsAPI extends DataSource {
 
 	// method for liking or disliking news based on the action type and the ids of the news and the user
 	// action - 'like' or 'dislike'
-	async likeNews(action, newsId, userId) {
+	async voteNews(action, newsId, userId) {
 		try {
 			/*
 				propName - if the user wants to like the news, we update propName of news
@@ -467,11 +478,11 @@ class NewsAPI extends DataSource {
 				dislikes: news.dislikes,
 			}
 		} catch (error) {
-			return handleError("likeNews", error)
+			return handleError("voteNews", error)
 		}
 	}
 
-	async getLikeState(newsId, userId) {
+	async getVoteState(newsId, userId) {
 		try {
 			// find if the user liked or disliked the news
 			const link = await UserLike.findOne({
@@ -486,7 +497,7 @@ class NewsAPI extends DataSource {
 
 			return link.type
 		} catch (error) {
-			return handleError("likeState", error)
+			return handleError("voteState", error)
 		}
 	}
 
