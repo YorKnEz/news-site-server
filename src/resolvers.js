@@ -26,7 +26,7 @@ const resolvers = {
 			}
 		},
 		// returns an array of news created on the site that will be used to populate the homepage
-		newsForRedditHome: async (_, { after }, { dataSources }) => {
+		newsForHomeReddit: async (_, { after }, { dataSources }) => {
 			try {
 				// fetch news from r/Romania
 				const { newAfter, fetchedNews } =
@@ -43,7 +43,7 @@ const resolvers = {
 					after: newAfter,
 				}
 			} catch (error) {
-				return handleError("newsForRedditHome", error)
+				return handleError("newsForHomeReddit", error)
 			}
 		},
 		// returns an array of news of a certain author to display on his profile
