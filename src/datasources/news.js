@@ -106,7 +106,7 @@ class NewsAPI extends DataSource {
 					redditId: data.id,
 					title: formatTitle(data.title),
 					authorId: data.author,
-					createdAt: data.created,
+					createdAt: data.created * 1000,
 					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
 					sources: "https://www.reddit.com" + data.permalink,
