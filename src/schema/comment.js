@@ -11,6 +11,8 @@ const typeDefs = gql`
 	type Mutation {
 		"Add a comment"
 		addComment(commentData: CommentInput!): CommentResponse!
+		"Edit a comment"
+		editComment(commentData: CommentInput!): CommentResponse!
 	}
 
 	input CommentInput {
@@ -92,6 +94,26 @@ const resolvers = {
 				}
 			} catch (error) {
 				return handleMutationError("addComment", error)
+			}
+		},
+		editComment: async (_, { commentData }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				const comment = await dataSources.commentAPI.editComment(
+					commentData,
+					userId
+				)
+
+				return {
+					code: 200,
+					success: true,
+					message: "Edited comment successfully.",
+					comment,
+				}
+			} catch (error) {
+				return handleMutationError("updateComment", error)
 			}
 		},
 	},

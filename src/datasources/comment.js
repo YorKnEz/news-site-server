@@ -93,6 +93,33 @@ class CommentAPI extends DataSource {
 			return handleError("addComment", error)
 		}
 	}
+
+	async editComment(commentData, userId) {
+		try {
+			// try to find the comment that the user wants to edit
+			const comment = await Comment.findOne({
+				where: {
+					UserId: userId,
+					parentId: commentData.parentId,
+					parentType: commentData.parentType,
+				},
+			})
+
+			// if the comment is not found, throw an error
+			if (!comment) throw new UserInputError("Invalid input.")
+
+			// update the body of the comment
+			await comment.update({ body: commentData.body })
+
+			// save the changes
+			await comment.save()
+
+			// return the updated comment
+			return comment
+		} catch (error) {
+			return handleError("editComment", error)
+		}
+	}
 }
 
 module.exports = CommentAPI
