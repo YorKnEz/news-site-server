@@ -65,6 +65,34 @@ class CommentAPI extends DataSource {
 			return handleError("getComments", error)
 		}
 	}
+
+	async addComment(commentData, userId) {
+		try {
+			// if the parent of the comment is a news, we need to increase the comments counter
+			if (commentData.type === "news") {
+				// get the news
+				const news = await News.findOne({
+					where: { id: commentData.parentId },
+				})
+
+				// update the comment counter
+				await news.update({ comments: news.comments + 1 })
+
+				// save the changes
+				await news.save()
+			}
+
+			// create the comment
+			const comment = await Comment.create({
+				UserId: userId,
+				...commentData,
+			})
+
+			return comment
+		} catch (error) {
+			return handleError("addComment", error)
+		}
+	}
 }
 
 module.exports = CommentAPI

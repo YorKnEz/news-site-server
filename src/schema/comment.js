@@ -9,8 +9,26 @@ const typeDefs = gql`
 	}
 
 	type Mutation {
+		"Add a comment"
+		addComment(commentData: CommentInput!): CommentResponse!
 	}
 
+	input CommentInput {
+		parentId: ID!
+		parentType: String!
+		body: String!
+	}
+
+	type CommentResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"The comment"
+		comment: Comment!
+	}
 
 	type Comment {
 		id: ID!
@@ -56,6 +74,26 @@ const resolvers = {
 		},
 	},
 	Mutation: {
+		addComment: async (_, { commentData }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				const comment = await dataSources.commentAPI.addComment(
+					commentData,
+					userId
+				)
+
+				return {
+					code: 200,
+					success: true,
+					message: "Added comment successfully.",
+					comment,
+				}
+			} catch (error) {
+				return handleMutationError("addComment", error)
+			}
+		},
 	},
 	Comment: {
 		replies: async ({ id, repliesOffsetIndex }, _, { dataSources, userId }) => {
