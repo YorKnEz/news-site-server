@@ -407,7 +407,7 @@ class NewsAPI extends DataSource {
 			// try to find if the user already liked the news
 			const link1 = await UserVote.findOne({
 				where: {
-					newsId,
+					parentId: newsId,
 					UserId: userId,
 					type: action,
 				},
@@ -437,7 +437,7 @@ class NewsAPI extends DataSource {
 			// try to find if the user disliked the news
 			const link2 = await UserVote.findOne({
 				where: {
-					newsId,
+					parentId: newsId,
 					UserId: userId,
 					type: action === "like" ? "dislike" : "like",
 				},
@@ -460,7 +460,7 @@ class NewsAPI extends DataSource {
 			// create the link between the user and the news
 			await UserVote.create({
 				UserId: userId,
-				newsId: newsId,
+				parentId: newsId,
 				type: action,
 			})
 
@@ -488,7 +488,7 @@ class NewsAPI extends DataSource {
 			const link = await UserVote.findOne({
 				where: {
 					UserId: userId,
-					newsId,
+					parentId: newsId,
 					type: { [Op.or]: ["like", "dislike"] },
 				},
 			})
@@ -517,8 +517,8 @@ class NewsAPI extends DataSource {
 
 			// get all the news based on the ids
 			const news = await Promise.all(
-				likedNewsIds.map(async ({ newsId }) => {
-					const newsById = await News.findOne({ where: { id: newsId } })
+				likedNewsIds.map(async ({ parentId }) => {
+					const newsById = await News.findOne({ where: { id: parentId } })
 
 					return newsById
 				})
