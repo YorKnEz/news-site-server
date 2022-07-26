@@ -107,6 +107,8 @@ const typeDefs = gql`
 		likes: Int!
 		"The number of dislikes the post has"
 		dislikes: Int!
+		"The number of comments"
+		comments: Int
 	}
 `
 
@@ -213,7 +215,7 @@ const resolvers = {
 					id: newsId,
 				}
 			} catch (error) {
-				return handleError("createNews", error)
+				return handleMutationError("createNews", error)
 			}
 		},
 		updateNews: async (
@@ -242,7 +244,7 @@ const resolvers = {
 					news: updatedNews,
 				}
 			} catch (error) {
-				return handleError("updateNews", error)
+				return handleMutationError("updateNews", error)
 			}
 		},
 		deleteNews: async (_, { id }, { dataSources, token, userId, userRole }) => {
@@ -262,7 +264,7 @@ const resolvers = {
 					message: "The news has been successfully deleted",
 				}
 			} catch (error) {
-				return handleError("deleteNews", error)
+				return handleMutationError("deleteNews", error)
 			}
 		},
 	},
