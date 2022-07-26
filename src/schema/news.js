@@ -1,13 +1,116 @@
-const {
-	ForbiddenError,
-	AuthenticationError,
-	UserInputError,
-} = require("apollo-server")
+const { gql, AuthenticationError, ForbiddenError } = require("apollo-server")
 
-const { evaluateImageLink, handleError } = require("./utils")
+const { dataToFetch, evaluateImageLink, handleError } = require("../utils")
 
-// used for resolvers that return arrays
-const dataToFetch = 4
+const typeDefs = gql`
+	type Query {
+		"Query to get news array for the home page"
+		newsForHome(offsetIndex: Int): [News!]!
+		"Query to get reddit news array for the home page"
+		newsForHomeReddit(after: String): NewsForHomeRedditResponse!
+		"Gets all the news of a specific author"
+		newsForProfile(offsetIndex: Int, id: ID!): [News!]
+		"Gets a news by id"
+		news(id: ID!): News!
+		"Gets the liked news by a user"
+		likedNews(offsetIndex: Int): [News!]
+	}
+
+	type Mutation {
+		"Creates a news based on input"
+		createNews(newsData: NewsInput!): CreateNewsResponse!
+		"Updates existing news in the db based on input"
+		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
+		"Deletes a news by id"
+		deleteNews(id: ID!): DeleteNewsResponse!
+	}
+
+	input NewsInput {
+		title: String!
+		thumbnail: String
+		sources: String!
+		tags: String!
+		body: String!
+	}
+
+	type CreateNewsResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"The id of the news that has been created"
+		id: ID!
+	}
+
+	type UpdateNewsResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+	}
+
+	type DeleteNewsResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+	}
+
+	type AddCommentResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"The comment"
+		comment: Comment!
+	}
+
+	type NewsForHomeRedditResponse {
+		after: String
+		news: [News!]
+	}
+
+	"This is the structure of a news"
+	type News {
+		id: ID!
+		"The news' title"
+		title: String!
+		"The creator of the news"
+		author: AuthorShort!
+		"The picture to display in the home page or the news page"
+		thumbnail: String
+		"The subreddit the news originates from prefixed with r/"
+		subreddit: String
+		"The source of the news"
+		sources: String!
+		"The tags of the news, that help for better searching"
+		tags: String
+		"The body of the news"
+		body: String
+		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site)"
+		type: String!
+		"The creation date of the news"
+		createdAt: String!
+		"The last time the news was edited"
+		updatedAt: String!
+		"Wether the user already voted the news. Can be 'like', 'dislike' or 'none'"
+		voteState: String!
+		"The number of likes the post has"
+		likes: Int!
+		"The number of dislikes the post has"
+		dislikes: Int!
+		"The number of comments"
+		comments: Int
+	}
+`
 
 const resolvers = {
 	Query: {
@@ -73,69 +176,6 @@ const resolvers = {
 				return handleError("news", error)
 			}
 		},
-		author: async (_, { id }, { dataSources, token }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				const author = await dataSources.userAPI.getAuthorById(id)
-
-				return {
-					...author.toJSON(),
-				}
-			} catch (error) {
-				return handleError("author", error)
-			}
-		},
-		search: async (_, { search, filter }, { dataSources, token }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				switch (filter) {
-					case "title":
-						const newsTitle = await dataSources.newsAPI.searchNewsByTitle(
-							search
-						)
-
-						return newsTitle
-					case "body":
-						const newsBody = await dataSources.newsAPI.searchNewsByBody(search)
-
-						return newsBody
-					case "author":
-						const authors = await dataSources.userAPI.searchAuthors(search)
-
-						return authors
-					case "tags":
-						const newsTags = await dataSources.newsAPI.searchNewsByTags(search)
-
-						return newsTags
-				}
-			} catch (error) {
-				return handleError("search", error)
-			}
-		},
-		followedAuthors: async (
-			_,
-			{ offsetIndex },
-			{ dataSources, token, userId }
-		) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				const authors = await dataSources.userAPI.getFollowedAuthors(
-					offsetIndex,
-					userId,
-					dataToFetch
-				)
-
-				return authors
-			} catch (error) {
-				return handleError("followedAuthors", error)
-			}
-		},
 		likedNews: async (_, { offsetIndex }, { dataSources, token, userId }) => {
 			try {
 				if (!token)
@@ -175,7 +215,7 @@ const resolvers = {
 					id: newsId,
 				}
 			} catch (error) {
-				return handleError("createNews", error)
+				return handleMutationError("createNews", error)
 			}
 		},
 		updateNews: async (
@@ -204,7 +244,7 @@ const resolvers = {
 					news: updatedNews,
 				}
 			} catch (error) {
-				return handleError("updateNews", error)
+				return handleMutationError("updateNews", error)
 			}
 		},
 		deleteNews: async (_, { id }, { dataSources, token, userId, userRole }) => {
@@ -224,33 +264,7 @@ const resolvers = {
 					message: "The news has been successfully deleted",
 				}
 			} catch (error) {
-				return handleError("deleteNews", error)
-			}
-		},
-		voteNews: async (_, { action, id }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				if (action === "like" || action === "dislike") {
-					const response = await dataSources.newsAPI.voteNews(
-						action,
-						id,
-						userId
-					)
-
-					return {
-						code: 200,
-						success: true,
-						message: response.message,
-						likes: response.likes,
-						dislikes: response.dislikes,
-					}
-				} else {
-					throw new UserInputError("Invalid action.")
-				}
-			} catch (error) {
-				return handleError("voteNews", error)
+				return handleMutationError("deleteNews", error)
 			}
 		},
 	},
@@ -301,20 +315,9 @@ const resolvers = {
 			}
 		},
 	},
-	Author: {
-		following: async ({ id }, _, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				const result = await dataSources.userfollowAPI.isFollowing(id, userId)
-
-				return result
-			} catch (error) {
-				return handleError("following", error)
-			}
-		},
-	},
 }
 
-module.exports = resolvers
+module.exports = {
+	newsSchema: typeDefs,
+	newsResolvers: resolvers,
+}

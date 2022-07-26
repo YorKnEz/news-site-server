@@ -1,6 +1,7 @@
 module.exports = {
-	UserAPI: require("./author"),
+	CommentAPI: require("./comment"),
 	NewsAPI: require("./news"),
 	RedditAPI: require("./reddit-api"),
+	UserAPI: require("./user"),
 	UserFollowAPI: require("./userfollow"),
 }

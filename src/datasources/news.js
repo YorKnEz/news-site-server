@@ -4,7 +4,7 @@ const format = require("date-fns/format")
 const fs = require("fs")
 const { Op } = require("sequelize")
 
-const { News, User, UserLike } = require("../database")
+const { News, User, UserVote } = require("../database")
 const { formatTitle, handleError } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
@@ -106,7 +106,7 @@ class NewsAPI extends DataSource {
 					redditId: data.id,
 					title: formatTitle(data.title),
 					authorId: data.author,
-					createdAt: data.created,
+					createdAt: data.created * 1000,
 					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
 					sources: "https://www.reddit.com" + data.permalink,
@@ -405,9 +405,9 @@ class NewsAPI extends DataSource {
 			if (!news) throw new UserInputError("Invalid id.")
 
 			// try to find if the user already liked the news
-			const link1 = await UserLike.findOne({
+			const link1 = await UserVote.findOne({
 				where: {
-					newsId,
+					parentId: newsId,
 					UserId: userId,
 					type: action,
 				},
@@ -435,9 +435,9 @@ class NewsAPI extends DataSource {
 			}
 
 			// try to find if the user disliked the news
-			const link2 = await UserLike.findOne({
+			const link2 = await UserVote.findOne({
 				where: {
-					newsId,
+					parentId: newsId,
 					UserId: userId,
 					type: action === "like" ? "dislike" : "like",
 				},
@@ -458,9 +458,9 @@ class NewsAPI extends DataSource {
 			}
 
 			// create the link between the user and the news
-			await UserLike.create({
+			await UserVote.create({
 				UserId: userId,
-				newsId: newsId,
+				parentId: newsId,
 				type: action,
 			})
 
@@ -485,10 +485,10 @@ class NewsAPI extends DataSource {
 	async getVoteState(newsId, userId) {
 		try {
 			// find if the user liked or disliked the news
-			const link = await UserLike.findOne({
+			const link = await UserVote.findOne({
 				where: {
 					UserId: userId,
-					newsId,
+					parentId: newsId,
 					type: { [Op.or]: ["like", "dislike"] },
 				},
 			})
@@ -505,7 +505,7 @@ class NewsAPI extends DataSource {
 	async getLikedNews(offsetIndex, userId, dataToFetch) {
 		try {
 			// retrieve all the ids of the liked news
-			const likedNewsIds = await UserLike.findAll({
+			const likedNewsIds = await UserVote.findAll({
 				offset: offsetIndex * dataToFetch,
 				limit: dataToFetch,
 				where: {
@@ -517,8 +517,8 @@ class NewsAPI extends DataSource {
 
 			// get all the news based on the ids
 			const news = await Promise.all(
-				likedNewsIds.map(async ({ newsId }) => {
-					const newsById = await News.findOne({ where: { id: newsId } })
+				likedNewsIds.map(async ({ parentId }) => {
+					const newsById = await News.findOne({ where: { id: parentId } })
 
 					return newsById
 				})
