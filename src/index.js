@@ -7,8 +7,7 @@ const axios = require("axios")
 const { RedditAPI, NewsAPI, UserAPI, UserFollowAPI } = require("./datasources")
 const { testConnection } = require("./database/sequelize")
 const { startExpressServer } = require("./express-server")
-const resolvers = require("./resolvers")
-const typeDefs = require("./schema")
+const { typeDefs, resolvers } = require("./schema")
 
 const authIp = process.env.EXPRESS_SERVER_IP
 

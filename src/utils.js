@@ -35,8 +35,12 @@ const handleError = (location, error) => {
 	return error
 }
 
+// used for resolvers that return arrays
+const dataToFetch = 4
+
 module.exports = {
 	evaluateImageLink,
 	formatTitle,
 	handleError,
+	dataToFetch,
 }
