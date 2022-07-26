@@ -1,6 +1,6 @@
 const { gql, AuthenticationError, UserInputError } = require("apollo-server")
 
-const { dataToFetch, handleError } = require("../utils")
+const { dataToFetch, handleError, handleMutationError } = require("../utils")
 
 const typeDefs = gql`
 	type Query {
@@ -124,7 +124,7 @@ const resolvers = {
 					throw new UserInputError("Invalid action.")
 				}
 			} catch (error) {
-				return handleError("voteNews", error)
+				return handleMutationError("voteNews", error)
 			}
 		},
 	},

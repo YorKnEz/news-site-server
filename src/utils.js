@@ -35,12 +35,33 @@ const handleError = (location, error) => {
 	return error
 }
 
+const handleMutationError = (location, error) => {
+	if (error.status && error.message) {
+		console.log(`Error ${error.status} in ${location}: ${error.message}`)
+
+		return {
+			code: error.status,
+			success: false,
+			message: error.message,
+		}
+	} else {
+		console.log(`Error in ${location}: ${error}`)
+
+		return {
+			code: 400,
+			success: false,
+			message: error.message,
+		}
+	}
+}
+
 // used for resolvers that return arrays
 const dataToFetch = 4
 
 module.exports = {
+	dataToFetch,
 	evaluateImageLink,
 	formatTitle,
 	handleError,
-	dataToFetch,
+	handleMutationError,
 }
