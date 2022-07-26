@@ -13,6 +13,8 @@ const typeDefs = gql`
 		addComment(commentData: CommentInput!): CommentResponse!
 		"Edit a comment"
 		editComment(commentData: CommentInput!): CommentResponse!
+		"Remove a comment"
+		removeComment(id: ID!): RemoveCommentResponse!
 	}
 
 	input CommentInput {
@@ -30,6 +32,15 @@ const typeDefs = gql`
 		message: String!
 		"The comment"
 		comment: Comment!
+	}
+
+	type RemoveCommentResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
 	}
 
 	type Comment {
@@ -114,6 +125,22 @@ const resolvers = {
 				}
 			} catch (error) {
 				return handleMutationError("updateComment", error)
+			}
+		},
+		removeComment: async (_, { id }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				await dataSources.commentAPI.removeComment(id, userId)
+
+				return {
+					code: 200,
+					success: true,
+					message: "Removed comment successfully.",
+				}
+			} catch (error) {
+				return handleMutationError("removeComment", error)
 			}
 		},
 	},

@@ -120,6 +120,40 @@ class CommentAPI extends DataSource {
 			return handleError("editComment", error)
 		}
 	}
+
+	async removeComment(id, userId) {
+		try {
+			// find the comment of the user
+			const comment = await Comment.findOne({
+				where: {
+					id,
+					UserId: userId,
+				},
+			})
+
+			// if the comment is not found, throw an error
+			if (!comment) throw new UserInputError("Invalid input.")
+
+			// if the parent of the comment is a news, the commments counter should be decreased
+			if (comment.parentType === "news") {
+				// find the news
+				const news = await News.findOne({
+					where: { id: comment.parentId },
+				})
+
+				// update the comment counter
+				await news.update({ comments: news.comments - 1 })
+
+				// save the changes
+				await news.save()
+			}
+
+			// remove the comment
+			await comment.destroy()
+		} catch (error) {
+			return handleError("removeComment", error)
+		}
+	}
 }
 
 module.exports = CommentAPI
