@@ -69,7 +69,7 @@ class CommentAPI extends DataSource {
 	async addComment(commentData, userId) {
 		try {
 			// if the parent of the comment is a news, we need to increase the comments counter
-			if (commentData.type === "news") {
+			if (commentData.parentType === "news") {
 				// get the news
 				const news = await News.findOne({
 					where: { id: commentData.parentId },
@@ -80,6 +80,19 @@ class CommentAPI extends DataSource {
 
 				// save the changes
 				await news.save()
+			}
+			// if the parent of the comment is a comment, we need to incresea the replies counter
+			else if (commentData.parentType === "comment") {
+				// get the comment
+				const parentComment = await Comment.findOne({
+					where: { id: commentData.parentId },
+				})
+
+				// update the replies counter
+				await parentComment.update({ replies: parentComment.replies + 1 })
+
+				// save the changes
+				await parentComment.save()
 			}
 
 			// create the comment
@@ -146,6 +159,19 @@ class CommentAPI extends DataSource {
 
 				// save the changes
 				await news.save()
+			}
+			// if the parent of the comment is a news, the commments counter should be decreased
+			else if (comment.parentType === "comment") {
+				// find the news
+				const parentComment = await News.findOne({
+					where: { id: comment.parentId },
+				})
+
+				// update the comment counter
+				await parentComment.update({ replies: parentComment.replies - 1 })
+
+				// save the changes
+				await parentComment.save()
 			}
 
 			// remove the comment

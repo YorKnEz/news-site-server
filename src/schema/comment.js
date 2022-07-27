@@ -57,10 +57,8 @@ const typeDefs = gql`
 		dislikes: Int!
 		"The date when the comment was created"
 		createdAt: String!
-		"The replies"
-		replies: [Comment!]
-		"The replies' offsetIndex, for fetching the next replies in the array"
-		repliesOffsetIndex: Int
+		"The number of replies"
+		replies: Int
 	}
 `
 
