@@ -23,6 +23,9 @@ const typeDefs = gql`
 		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
 		"Deletes a news by id"
 		deleteNews(id: ID!): DeleteNewsResponse!
+
+		"Toggle vote news. Action can be either 'like' or 'dislike'"
+		voteNews(action: String!, id: ID!): VoteNewsResponse!
 	}
 
 	input NewsInput {
@@ -62,15 +65,17 @@ const typeDefs = gql`
 		message: String!
 	}
 
-	type AddCommentResponse {
+	type VoteNewsResponse {
 		"Similar to HTTP status code, represents the status of the mutation"
 		code: Int!
 		"Indicated whether the mutation was successful"
 		success: Boolean!
 		"Human-readable message for the UI"
 		message: String!
-		"The comment"
-		comment: Comment!
+		"Updated number of likes"
+		likes: Int!
+		"Updated number of dislikes"
+		dislikes: Int!
 	}
 
 	type NewsForHomeRedditResponse {
@@ -267,6 +272,32 @@ const resolvers = {
 				return handleMutationError("deleteNews", error)
 			}
 		},
+		voteNews: async (_, { action, id }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (action === "like" || action === "dislike") {
+					const response = await dataSources.newsAPI.voteNews(
+						action,
+						id,
+						userId
+					)
+
+					return {
+						code: 200,
+						success: true,
+						message: response.message,
+						likes: response.likes,
+						dislikes: response.dislikes,
+					}
+				} else {
+					throw new UserInputError("Invalid action.")
+				}
+			} catch (error) {
+				return handleMutationError("voteNews", error)
+			}
+		},
 	},
 	News: {
 		author: async ({ authorId, type }, _, { dataSources }) => {
@@ -307,7 +338,7 @@ const resolvers = {
 		},
 		voteState: async ({ id }, _, { dataSources, userId }) => {
 			try {
-				if (userId) return dataSources.newsAPI.getVoteState(id, userId)
+				if (userId) return dataSources.newsAPI.getVoteState(id, "news", userId)
 
 				return "none"
 			} catch (error) {
