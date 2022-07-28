@@ -408,6 +408,7 @@ class NewsAPI extends DataSource {
 			const link1 = await UserVote.findOne({
 				where: {
 					parentId: newsId,
+					parentType: "news",
 					UserId: userId,
 					type: action,
 				},
@@ -438,6 +439,7 @@ class NewsAPI extends DataSource {
 			const link2 = await UserVote.findOne({
 				where: {
 					parentId: newsId,
+					parentType: "news",
 					UserId: userId,
 					type: action === "like" ? "dislike" : "like",
 				},
@@ -461,6 +463,7 @@ class NewsAPI extends DataSource {
 			await UserVote.create({
 				UserId: userId,
 				parentId: newsId,
+				parentType: "news",
 				type: action,
 			})
 
@@ -482,13 +485,14 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	async getVoteState(newsId, userId) {
+	async getVoteState(parentId, parentType, userId) {
 		try {
 			// find if the user liked or disliked the news
 			const link = await UserVote.findOne({
 				where: {
 					UserId: userId,
-					parentId: newsId,
+					parentId,
+					parentType,
 					type: { [Op.or]: ["like", "dislike"] },
 				},
 			})
