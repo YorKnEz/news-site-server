@@ -61,6 +61,8 @@ const typeDefs = gql`
 
 	type Comment {
 		id: ID!
+		"The author of the comment"
+		author: AuthorShort!
 		"The id of the parent of the comment"
 		parentId: ID!
 		"The type of the parent of the comment"
@@ -90,9 +92,9 @@ const resolvers = {
 			try {
 				const comments = await dataSources.commentAPI.getComments(
 					offsetIndex,
+					userId,
 					newsId,
 					"news",
-					userId,
 					dataToFetch
 				)
 
@@ -187,18 +189,19 @@ const resolvers = {
 		},
 	},
 	Comment: {
-		replies: async ({ id, repliesOffsetIndex }, _, { dataSources, userId }) => {
+		author: async ({ UserId }, _, { dataSources }) => {
 			try {
-				// get the first [dataToFetch] replies of a certain comments
-				const comments = await dataSources.commentAPI.getComments(
-					repliesOffsetIndex, // the offsetIndex
-					id,
-					"comment",
-					userId,
-					dataToFetch
-				)
+				const user = await dataSources.userAPI.getUserById(UserId)
 
-				return comments
+				return {
+					id: user.id,
+					fullName: user.fullName,
+					profilePicture: user.profilePicture,
+				}
+			} catch (error) {
+				return handleError("author", error)
+			}
+		},
 		voteState: async ({ id }, _, { dataSources, userId }) => {
 			try {
 				if (userId)

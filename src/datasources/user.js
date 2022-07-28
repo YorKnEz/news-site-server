@@ -32,6 +32,27 @@ class UserAPI extends DataSource {
 		}
 	}
 
+	async getUserById(userId) {
+		try {
+			const user = await User.findOne({
+				where: {
+					id: userId,
+				},
+			})
+
+			if (!user) {
+				throw {
+					status: 404,
+					message: "User not found.",
+				}
+			}
+
+			return user
+		} catch (error) {
+			return handleError("getAuthorById", error)
+		}
+	}
+
 	async searchAuthors(name) {
 		try {
 			// find the author whose first, last or full name is matching search query
