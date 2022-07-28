@@ -15,6 +15,9 @@ const typeDefs = gql`
 		editComment(commentData: CommentInput!): CommentResponse!
 		"Remove a comment"
 		removeComment(id: ID!): RemoveCommentResponse!
+
+		"Toggle vote comment. Action can be either 'like' or 'dislike'"
+		voteComment(action: String!, id: ID!): VoteCommentResponse!
 	}
 
 	input CommentInput {
@@ -43,6 +46,19 @@ const typeDefs = gql`
 		message: String!
 	}
 
+	type VoteCommentResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"Updated number of likes"
+		likes: Int!
+		"Updated number of dislikes"
+		dislikes: Int!
+	}
+
 	type Comment {
 		id: ID!
 		"The id of the parent of the comment"
@@ -51,6 +67,8 @@ const typeDefs = gql`
 		parentType: String!
 		"The body of the comment"
 		body: String!
+		"Wether the user already voted the comment. Can be 'like', 'dislike' or 'none'"
+		voteState: String!
 		"The number of likes of the comment"
 		likes: Int!
 		"The number of dislikes of the comment"
@@ -141,6 +159,32 @@ const resolvers = {
 				return handleMutationError("removeComment", error)
 			}
 		},
+		voteComment: async (_, { action, id }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (action === "like" || action === "dislike") {
+					const response = await dataSources.commentAPI.voteComment(
+						action,
+						id,
+						userId
+					)
+
+					return {
+						code: 200,
+						success: true,
+						message: response.message,
+						likes: response.likes,
+						dislikes: response.dislikes,
+					}
+				} else {
+					throw new UserInputError("Invalid action.")
+				}
+			} catch (error) {
+				return handleMutationError("voteNews", error)
+			}
+		},
 	},
 	Comment: {
 		replies: async ({ id, repliesOffsetIndex }, _, { dataSources, userId }) => {
@@ -155,8 +199,14 @@ const resolvers = {
 				)
 
 				return comments
+		voteState: async ({ id }, _, { dataSources, userId }) => {
+			try {
+				if (userId)
+					return dataSources.newsAPI.getVoteState(id, "comment", userId)
+
+				return "none"
 			} catch (error) {
-				return handleError("replies", error)
+				return handleError("voteState", error)
 			}
 		},
 	},
