@@ -15,6 +15,9 @@ const typeDefs = gql`
 		editComment(commentData: CommentInput!): CommentResponse!
 		"Remove a comment"
 		removeComment(id: ID!): RemoveCommentResponse!
+
+		"Toggle vote comment. Action can be either 'like' or 'dislike'"
+		voteComment(action: String!, id: ID!): VoteCommentResponse!
 	}
 
 	input CommentInput {
@@ -43,24 +46,39 @@ const typeDefs = gql`
 		message: String!
 	}
 
+	type VoteCommentResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"Updated number of likes"
+		likes: Int!
+		"Updated number of dislikes"
+		dislikes: Int!
+	}
+
 	type Comment {
 		id: ID!
+		"The author of the comment"
+		author: AuthorShort!
 		"The id of the parent of the comment"
 		parentId: ID!
 		"The type of the parent of the comment"
 		parentType: String!
 		"The body of the comment"
 		body: String!
+		"Wether the user already voted the comment. Can be 'like', 'dislike' or 'none'"
+		voteState: String!
 		"The number of likes of the comment"
 		likes: Int!
 		"The number of dislikes of the comment"
 		dislikes: Int!
 		"The date when the comment was created"
 		createdAt: String!
-		"The replies"
-		replies: [Comment!]
-		"The replies' offsetIndex, for fetching the next replies in the array"
-		repliesOffsetIndex: Int
+		"The number of replies"
+		replies: Int
 	}
 `
 
@@ -74,9 +92,9 @@ const resolvers = {
 			try {
 				const comments = await dataSources.commentAPI.getComments(
 					offsetIndex,
+					userId,
 					newsId,
 					"news",
-					userId,
 					dataToFetch
 				)
 
@@ -143,22 +161,55 @@ const resolvers = {
 				return handleMutationError("removeComment", error)
 			}
 		},
+		voteComment: async (_, { action, id }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (action === "like" || action === "dislike") {
+					const response = await dataSources.commentAPI.voteComment(
+						action,
+						id,
+						userId
+					)
+
+					return {
+						code: 200,
+						success: true,
+						message: response.message,
+						likes: response.likes,
+						dislikes: response.dislikes,
+					}
+				} else {
+					throw new UserInputError("Invalid action.")
+				}
+			} catch (error) {
+				return handleMutationError("voteNews", error)
+			}
+		},
 	},
 	Comment: {
-		replies: async ({ id, repliesOffsetIndex }, _, { dataSources, userId }) => {
+		author: async ({ UserId }, _, { dataSources }) => {
 			try {
-				// get the first [dataToFetch] replies of a certain comments
-				const comments = await dataSources.commentAPI.getComments(
-					repliesOffsetIndex, // the offsetIndex
-					id,
-					"comment",
-					userId,
-					dataToFetch
-				)
+				const user = await dataSources.userAPI.getUserById(UserId)
 
-				return comments
+				return {
+					id: user.id,
+					fullName: user.fullName,
+					profilePicture: user.profilePicture,
+				}
 			} catch (error) {
-				return handleError("replies", error)
+				return handleError("author", error)
+			}
+		},
+		voteState: async ({ id }, _, { dataSources, userId }) => {
+			try {
+				if (userId)
+					return dataSources.newsAPI.getVoteState(id, "comment", userId)
+
+				return "none"
+			} catch (error) {
+				return handleError("voteState", error)
 			}
 		},
 	},

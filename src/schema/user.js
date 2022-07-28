@@ -10,24 +10,6 @@ const typeDefs = gql`
 		followedAuthors(offsetIndex: Int): [Author!]
 	}
 
-	type Mutation {
-		"Toggle vote news. Action can be either 'like' or 'dislike'"
-		voteNews(action: String!, id: ID!): VoteNewsResponse!
-	}
-
-	type VoteNewsResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of likes"
-		likes: Int!
-		"Updated number of dislikes"
-		dislikes: Int!
-	}
-
 	"Author data to be displayed on a news card"
 	type AuthorShort {
 		id: ID!
@@ -97,34 +79,6 @@ const resolvers = {
 				return authors
 			} catch (error) {
 				return handleError("followedAuthors", error)
-			}
-		},
-	},
-	Mutation: {
-		voteNews: async (_, { action, id }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				if (action === "like" || action === "dislike") {
-					const response = await dataSources.newsAPI.voteNews(
-						action,
-						id,
-						userId
-					)
-
-					return {
-						code: 200,
-						success: true,
-						message: response.message,
-						likes: response.likes,
-						dislikes: response.dislikes,
-					}
-				} else {
-					throw new UserInputError("Invalid action.")
-				}
-			} catch (error) {
-				return handleMutationError("voteNews", error)
 			}
 		},
 	},

@@ -29,6 +29,12 @@ const Comment = sequelize.define("Comment", {
 		allowNull: false,
 		defaultValue: 0,
 	},
+	// replies counter
+	replies: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+		defaultValue: 0,
+	},
 })
 
 Comment.belongsTo(User)
