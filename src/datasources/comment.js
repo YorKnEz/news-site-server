@@ -12,7 +12,7 @@ class CommentAPI extends DataSource {
 	}
 
 	// gets the comments of news or other comments
-	async getComments(offsetIndex, userId, parentId, parentType, dataToFetch) {
+	async getComments(offsetIndex, parentId, parentType, dataToFetch) {
 		try {
 			// get the comments
 			const comments = await Comment.findAll({
@@ -72,11 +72,12 @@ class CommentAPI extends DataSource {
 		}
 	}
 
-	async editComment(commentData, userId) {
+	async editComment(commentData, userId, commentId) {
 		try {
 			// try to find the comment that the user wants to edit
 			const comment = await Comment.findOne({
 				where: {
+					id: commentId,
 					UserId: userId,
 					parentId: commentData.parentId,
 					parentType: commentData.parentType,
