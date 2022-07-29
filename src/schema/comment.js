@@ -12,7 +12,7 @@ const typeDefs = gql`
 		"Add a comment"
 		addComment(commentData: CommentInput!): CommentResponse!
 		"Edit a comment"
-		editComment(commentData: CommentInput!): CommentResponse!
+		editComment(commentData: CommentInput!, id: ID!): CommentResponse!
 		"Remove a comment"
 		removeComment(id: ID!): RemoveCommentResponse!
 
@@ -92,7 +92,6 @@ const resolvers = {
 			try {
 				const comments = await dataSources.commentAPI.getComments(
 					offsetIndex,
-					userId,
 					newsId,
 					"news",
 					dataToFetch
@@ -125,14 +124,19 @@ const resolvers = {
 				return handleMutationError("addComment", error)
 			}
 		},
-		editComment: async (_, { commentData }, { dataSources, token, userId }) => {
+		editComment: async (
+			_,
+			{ commentData, id },
+			{ dataSources, token, userId }
+		) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				const comment = await dataSources.commentAPI.editComment(
 					commentData,
-					userId
+					userId,
+					id
 				)
 
 				return {
