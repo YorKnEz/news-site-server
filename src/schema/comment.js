@@ -102,6 +102,25 @@ const resolvers = {
 				return handleError("commentForNews", error)
 			}
 		},
+		commentReplies: async (
+			_,
+			{ offset, commentId, oldestCommentDate },
+			{ dataSources }
+		) => {
+			try {
+				const comments = await dataSources.commentAPI.getComments(
+					offset,
+					oldestCommentDate,
+					commentId,
+					"comment",
+					dataToFetch
+				)
+
+				return comments
+			} catch (error) {
+				return handleError("commentForNews", error)
+			}
+		},
 	},
 	Mutation: {
 		addComment: async (_, { commentData }, { dataSources, token, userId }) => {
