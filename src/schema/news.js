@@ -1,6 +1,17 @@
-const { gql, AuthenticationError, ForbiddenError } = require("apollo-server")
+const {
+	gql,
+	AuthenticationError,
+	ForbiddenError,
+	UserInputError,
+} = require("apollo-server")
+const { News } = require("../database")
 
-const { dataToFetch, evaluateImageLink, handleError } = require("../utils")
+const {
+	dataToFetch,
+	evaluateImageLink,
+	handleError,
+	handleMutationError,
+} = require("../utils")
 
 const typeDefs = gql`
 	type Query {
@@ -26,6 +37,11 @@ const typeDefs = gql`
 
 		"Toggle vote news. Action can be either 'like' or 'dislike'"
 		voteNews(action: String!, id: ID!): VoteNewsResponse!
+		"Increase or decrease the comments counter of a news"
+		updateCommentsCounter(
+			action: String!
+			id: ID!
+		): UpdateCommentsCounterResposne!
 	}
 
 	input NewsInput {
@@ -76,6 +92,17 @@ const typeDefs = gql`
 		likes: Int!
 		"Updated number of dislikes"
 		dislikes: Int!
+	}
+
+	type UpdateCommentsCounterResposne {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"Updated number of comments"
+		comments: Int!
 	}
 
 	type NewsForHomeRedditResponse {
@@ -296,6 +323,27 @@ const resolvers = {
 				}
 			} catch (error) {
 				return handleMutationError("voteNews", error)
+			}
+		},
+		updateCommentsCounter: async (
+			_,
+			{ action, id },
+			{ dataSources, token }
+		) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				const comments = dataSources.newsAPI.updateCommentsCounter(action, id)
+
+				return {
+					code: 200,
+					success: true,
+					message: "Updated counter successfully",
+					comments,
+				}
+			} catch (error) {
+				return handleMutationError("updateCommentsCounter", error)
 			}
 		},
 	},

@@ -4,6 +4,11 @@ const { sequelize } = require("./sequelize")
 const User = require("./user")
 
 const Comment = sequelize.define("Comment", {
+	createdAt: {
+		type: DataTypes.DATE(6),
+		allowNull: false,
+		defaultValue: DataTypes.NOW,
+	},
 	// id of the parent of the comment (either a news or another comment if it's a reply)
 	parentId: {
 		type: DataTypes.INTEGER,

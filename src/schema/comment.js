@@ -5,7 +5,17 @@ const { dataToFetch, handleError, handleMutationError } = require("../utils")
 const typeDefs = gql`
 	type Query {
 		"Gets comments of a certain post"
-		commentsForNews(offsetIndex: Int, newsId: ID!): [Comment!]
+		commentsForNews(
+			offset: Int
+			oldestCommentDate: String!
+			newsId: ID!
+		): [Comment!]
+		"Gets replies of a certain comment"
+		commentReplies(
+			offset: Int
+			oldestCommentDate: String!
+			commentId: ID!
+		): [Comment!]
 	}
 
 	type Mutation {
@@ -14,10 +24,15 @@ const typeDefs = gql`
 		"Edit a comment"
 		editComment(commentData: CommentInput!, id: ID!): CommentResponse!
 		"Remove a comment"
-		removeComment(id: ID!): RemoveCommentResponse!
+		removeComment(id: ID!): CommentResponse!
 
 		"Toggle vote comment. Action can be either 'like' or 'dislike'"
 		voteComment(action: String!, id: ID!): VoteCommentResponse!
+		"Increase or decrease the replies counter of a comment"
+		updateRepliesCounter(
+			action: String!
+			id: ID!
+		): UpdateRepliesCounterResponse!
 	}
 
 	input CommentInput {
@@ -37,15 +52,6 @@ const typeDefs = gql`
 		comment: Comment!
 	}
 
-	type RemoveCommentResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-	}
-
 	type VoteCommentResponse {
 		"Similar to HTTP status code, represents the status of the mutation"
 		code: Int!
@@ -57,6 +63,17 @@ const typeDefs = gql`
 		likes: Int!
 		"Updated number of dislikes"
 		dislikes: Int!
+	}
+
+	type UpdateRepliesCounterResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"Updated number of replies"
+		replies: Int!
 	}
 
 	type Comment {
@@ -86,12 +103,13 @@ const resolvers = {
 	Query: {
 		commentsForNews: async (
 			_,
-			{ offsetIndex, newsId },
-			{ dataSources, userId }
+			{ offset, newsId, oldestCommentDate },
+			{ dataSources }
 		) => {
 			try {
 				const comments = await dataSources.commentAPI.getComments(
-					offsetIndex,
+					offset,
+					oldestCommentDate,
 					newsId,
 					"news",
 					dataToFetch
@@ -173,12 +191,13 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				await dataSources.commentAPI.removeComment(id, userId)
+				const comment = await dataSources.commentAPI.removeComment(id, userId)
 
 				return {
 					code: 200,
 					success: true,
 					message: "Removed comment successfully.",
+					comment,
 				}
 			} catch (error) {
 				return handleMutationError("removeComment", error)
@@ -210,10 +229,35 @@ const resolvers = {
 				return handleMutationError("voteNews", error)
 			}
 		},
+		updateRepliesCounter: async (_, { action, id }, { dataSources, token }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				const replies = dataSources.commentAPI.updateRepliesCounter(action, id)
+
+				return {
+					code: 200,
+					success: true,
+					message: "Updated counter successfully",
+					replies,
+				}
+			} catch (error) {
+				return handleMutationError("updateRepliesCounter", error)
+			}
+		},
 	},
 	Comment: {
-		author: async ({ UserId }, _, { dataSources }) => {
+		author: async ({ body, UserId }, _, { dataSources }) => {
 			try {
+				if (body === "[deleted]") {
+					return {
+						id: "[deleted]",
+						fullName: "[deleted]",
+						profilePicture: "default",
+					}
+				}
+
 				const user = await dataSources.userAPI.getUserById(UserId)
 
 				return {

@@ -12,19 +12,29 @@ class CommentAPI extends DataSource {
 	}
 
 	// gets the comments of news or other comments
-	async getComments(offsetIndex, parentId, parentType, dataToFetch) {
+	async getComments(
+		offset,
+		oldestCommentDate,
+		parentId,
+		parentType,
+		dataToFetch
+	) {
 		try {
 			// get the comments
 			const comments = await Comment.findAll({
-				offset: offsetIndex * dataToFetch,
 				limit: dataToFetch,
 				where: {
 					parentId,
 					parentType,
+					createdAt: {
+						[Op.lt]: new Date(parseInt(oldestCommentDate)).getTime(),
+					},
 				},
-				order: [["createdAt", "DESC"]],
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 			})
-
 			return comments
 		} catch (error) {
 			return handleError("getComments", error)
@@ -113,35 +123,16 @@ class CommentAPI extends DataSource {
 			// if the comment is not found, throw an error
 			if (!comment) throw new UserInputError("Invalid input.")
 
-			// if the parent of the comment is a news, the commments counter should be decreased
-			if (comment.parentType === "news") {
-				// find the news
-				const news = await News.findOne({
-					where: { id: comment.parentId },
-				})
+			// in order to avoid complications, every deleted comment will have it's author replaced with [deleted] and the content of the comment with [deleted]
+			await comment.update({
+				body: "[deleted]",
+			})
 
-				// update the comment counter
-				await news.update({ comments: news.comments - 1 })
+			// save changes
+			await comment.save()
 
-				// save the changes
-				await news.save()
-			}
-			// if the parent of the comment is a news, the commments counter should be decreased
-			else if (comment.parentType === "comment") {
-				// find the news
-				const parentComment = await News.findOne({
-					where: { id: comment.parentId },
-				})
-
-				// update the comment counter
-				await parentComment.update({ replies: parentComment.replies - 1 })
-
-				// save the changes
-				await parentComment.save()
-			}
-
-			// remove the comment
-			await comment.destroy()
+			// return the deleted comment
+			return comment
 		} catch (error) {
 			return handleError("removeComment", error)
 		}
@@ -254,6 +245,31 @@ class CommentAPI extends DataSource {
 			}
 		} catch (error) {
 			return handleError("voteComment", error)
+		}
+	}
+
+	// update the replies counter of the comment
+	async updateRepliesCounter(action, commentId) {
+		try {
+			// get the news
+			const comment = await Comment.findOne({
+				where: { id: commentId },
+			})
+
+			// if the news is not found, throw an error
+			if (!comment) throw new UserInputError("Invalid input.")
+
+			if (action === "up")
+				await comment.update({ replies: comment.replies + 1 })
+
+			if (action === "down")
+				await comment.update({ replies: comment.replies - 1 })
+
+			await comment.save()
+
+			return comment.replies
+		} catch (error) {
+			return handleError("updateRepliesCounter", error)
 		}
 	}
 }
