@@ -83,7 +83,10 @@ class UserAPI extends DataSource {
 				where: {
 					UserId: userId,
 				},
-				order: [["createdAt", "DESC"]],
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 				attributes: ["authorId"],
 			})
 

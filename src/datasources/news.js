@@ -37,7 +37,10 @@ class NewsAPI extends DataSource {
 				where: {
 					type,
 				},
-				order: [["createdAt", "DESC"]],
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 			})
 
 			return news
@@ -78,7 +81,10 @@ class NewsAPI extends DataSource {
 				where: {
 					authorId: author.id,
 				},
-				order: [["createdAt", "DESC"]],
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 			})
 
 			return news
@@ -516,7 +522,10 @@ class NewsAPI extends DataSource {
 					UserId: userId,
 					type: "like",
 				},
-				order: [["createdAt", "DESC"]],
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 			})
 
 			// get all the news based on the ids
