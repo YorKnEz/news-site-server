@@ -12,19 +12,29 @@ class CommentAPI extends DataSource {
 	}
 
 	// gets the comments of news or other comments
-	async getComments(offsetIndex, parentId, parentType, dataToFetch) {
+	async getComments(
+		offset,
+		oldestCommentDate,
+		parentId,
+		parentType,
+		dataToFetch
+	) {
 		try {
 			// get the comments
 			const comments = await Comment.findAll({
-				offset: offsetIndex * dataToFetch,
 				limit: dataToFetch,
 				where: {
 					parentId,
 					parentType,
+					createdAt: {
+						[Op.lt]: new Date(parseInt(oldestCommentDate)).getTime(),
+					},
 				},
-				order: [["createdAt", "DESC"]],
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 			})
-
 			return comments
 		} catch (error) {
 			return handleError("getComments", error)

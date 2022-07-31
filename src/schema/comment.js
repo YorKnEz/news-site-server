@@ -5,7 +5,17 @@ const { dataToFetch, handleError, handleMutationError } = require("../utils")
 const typeDefs = gql`
 	type Query {
 		"Gets comments of a certain post"
-		commentsForNews(offsetIndex: Int, newsId: ID!): [Comment!]
+		commentsForNews(
+			offset: Int
+			oldestCommentDate: String!
+			newsId: ID!
+		): [Comment!]
+		"Gets replies of a certain comment"
+		commentReplies(
+			offset: Int
+			oldestCommentDate: String!
+			commentId: ID!
+		): [Comment!]
 	}
 
 	type Mutation {
@@ -86,12 +96,13 @@ const resolvers = {
 	Query: {
 		commentsForNews: async (
 			_,
-			{ offsetIndex, newsId },
-			{ dataSources, userId }
+			{ offset, newsId, oldestCommentDate },
+			{ dataSources }
 		) => {
 			try {
 				const comments = await dataSources.commentAPI.getComments(
-					offsetIndex,
+					offset,
+					oldestCommentDate,
 					newsId,
 					"news",
 					dataToFetch
