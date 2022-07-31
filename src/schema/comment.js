@@ -24,7 +24,7 @@ const typeDefs = gql`
 		"Edit a comment"
 		editComment(commentData: CommentInput!, id: ID!): CommentResponse!
 		"Remove a comment"
-		removeComment(id: ID!): RemoveCommentResponse!
+		removeComment(id: ID!): CommentResponse!
 
 		"Toggle vote comment. Action can be either 'like' or 'dislike'"
 		voteComment(action: String!, id: ID!): VoteCommentResponse!
@@ -45,15 +45,6 @@ const typeDefs = gql`
 		message: String!
 		"The comment"
 		comment: Comment!
-	}
-
-	type RemoveCommentResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
 	}
 
 	type VoteCommentResponse {
@@ -184,12 +175,13 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				await dataSources.commentAPI.removeComment(id, userId)
+				const comment = await dataSources.commentAPI.removeComment(id, userId)
 
 				return {
 					code: 200,
 					success: true,
 					message: "Removed comment successfully.",
+					comment,
 				}
 			} catch (error) {
 				return handleMutationError("removeComment", error)
@@ -223,8 +215,16 @@ const resolvers = {
 		},
 	},
 	Comment: {
-		author: async ({ UserId }, _, { dataSources }) => {
+		author: async ({ body, UserId }, _, { dataSources }) => {
 			try {
+				if (body === "[deleted]") {
+					return {
+						id: "[deleted]",
+						fullName: "[deleted]",
+						profilePicture: "default",
+					}
+				}
+
 				const user = await dataSources.userAPI.getUserById(UserId)
 
 				return {
