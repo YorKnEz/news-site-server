@@ -7,7 +7,7 @@ const typeDefs = gql`
 		"Gets author info about an author"
 		author(id: ID!): Author!
 		"Gets all the followed authors of a user"
-		followedAuthors(offsetIndex: Int): [Author!]
+		followedAuthors(offset: Int): [Author!]
 	}
 
 	"Author data to be displayed on a news card"
@@ -61,17 +61,13 @@ const resolvers = {
 				return handleError("author", error)
 			}
 		},
-		followedAuthors: async (
-			_,
-			{ offsetIndex },
-			{ dataSources, token, userId }
-		) => {
+		followedAuthors: async (_, { offset }, { dataSources, token, userId }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				const authors = await dataSources.userAPI.getFollowedAuthors(
-					offsetIndex,
+					offset,
 					userId,
 					dataToFetch
 				)

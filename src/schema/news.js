@@ -16,15 +16,15 @@ const {
 const typeDefs = gql`
 	type Query {
 		"Query to get news array for the home page"
-		newsForHome(offsetIndex: Int): [News!]!
+		newsForHome(oldestId: ID!): [News!]!
 		"Query to get reddit news array for the home page"
 		newsForHomeReddit(after: String): NewsForHomeRedditResponse!
 		"Gets all the news of a specific author"
-		newsForProfile(offsetIndex: Int, id: ID!): [News!]
+		newsForProfile(oldestId: ID!, id: ID!): [News!]
 		"Gets a news by id"
 		news(id: ID!): News!
 		"Gets the liked news by a user"
-		likedNews(offsetIndex: Int): [News!]
+		likedNews(offset: Int): [News!]
 	}
 
 	type Mutation {
@@ -147,10 +147,10 @@ const typeDefs = gql`
 const resolvers = {
 	Query: {
 		// returns an array of news created on the site that will be used to populate the homepage
-		newsForHome: async (_, { offsetIndex }, { dataSources }) => {
+		newsForHome: async (_, { oldestId }, { dataSources }) => {
 			try {
 				const news = await dataSources.newsAPI.getNews(
-					offsetIndex,
+					oldestId,
 					"created",
 					dataToFetch
 				)
@@ -182,13 +182,13 @@ const resolvers = {
 			}
 		},
 		// returns an array of news of a certain author to display on his profile
-		newsForProfile: async (_, { offsetIndex, id }, { dataSources, token }) => {
+		newsForProfile: async (_, { oldestId, id }, { dataSources, token }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				const news = await dataSources.newsAPI.getAuthorNews(
-					offsetIndex,
+					oldestId,
 					id,
 					dataToFetch
 				)
@@ -208,13 +208,13 @@ const resolvers = {
 				return handleError("news", error)
 			}
 		},
-		likedNews: async (_, { offsetIndex }, { dataSources, token, userId }) => {
+		likedNews: async (_, { offset }, { dataSources, token, userId }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				const news = await dataSources.newsAPI.getLikedNews(
-					offsetIndex,
+					offset,
 					userId,
 					dataToFetch
 				)

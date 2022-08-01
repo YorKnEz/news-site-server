@@ -75,10 +75,10 @@ class UserAPI extends DataSource {
 		}
 	}
 
-	async getFollowedAuthors(offsetIndex, userId, dataToFetch) {
+	async getFollowedAuthors(offset, userId, dataToFetch) {
 		try {
 			const authorIds = await UserFollow.findAll({
-				offset: offsetIndex * dataToFetch,
+				offset,
 				limit: dataToFetch,
 				where: {
 					UserId: userId,

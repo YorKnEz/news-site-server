@@ -1,6 +1,5 @@
 const { DataSource } = require("apollo-datasource")
 const { ForbiddenError, UserInputError } = require("apollo-server")
-const format = require("date-fns/format")
 const fs = require("fs")
 const { Op } = require("sequelize")
 
@@ -14,27 +13,31 @@ class NewsAPI extends DataSource {
 	constructor() {
 		super()
 	}
+	// retrieve [newsToFetch] news based on the oldest fetched news id
 
-	// get the total number of news in the database
-	async getRedditNewsCount() {
+	async getNews(oldestId, type, dataToFetch) {
 		try {
-			return News.count({
-				where: {
-					type: "reddit",
-				},
+			// find the oldest news
+			const oldestNews = await News.findOne({
+				where: { id: oldestId },
 			})
-		} catch (error) {
-			return handleError("getRedditNewsCount", error)
-		}
-	}
 
-	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news
-	async getNews(offsetIndex, type, dataToFetch) {
-		try {
+			// add the additional options if there is an oldest news
+			const options = oldestNews && {
+				createdAt: {
+					[Op.lte]: oldestNews.createdAt,
+				},
+				id: {
+					[Op.lt]: oldestId,
+				},
+				type,
+			}
+
+			// get the news
 			const news = await News.findAll({
-				offset: offsetIndex * dataToFetch,
 				limit: dataToFetch,
 				where: {
+					...options,
 					type,
 				},
 				order: [
@@ -42,6 +45,38 @@ class NewsAPI extends DataSource {
 					["id", "DESC"],
 				],
 			})
+
+			return news
+		} catch (error) {
+			return handleError("getNews", error)
+		}
+	}
+
+	// retrieve [dataToFetch] liked news based on an offset
+	async getLikedNews(offset, userId, dataToFetch) {
+		try {
+			// retrieve all the ids of the liked news
+			const likedNewsIds = await UserVote.findAll({
+				offset,
+				limit: dataToFetch,
+				where: {
+					UserId: userId,
+					type: "like",
+				},
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			})
+
+			// get all the news based on the ids
+			const news = await Promise.all(
+				likedNewsIds.map(async ({ parentId }) => {
+					const newsById = await News.findOne({ where: { id: parentId } })
+
+					return newsById
+				})
+			)
 
 			return news
 		} catch (error) {
@@ -66,8 +101,8 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news of a certain author
-	async getAuthorNews(offsetIndex, id, dataToFetch) {
+	// retrieve [newsToFetch] news of a certain author basend on the oldest fetched author id
+	async getAuthorNews(oldestId, id, dataToFetch) {
 		try {
 			const author = await User.findOne({
 				where: {
@@ -75,10 +110,26 @@ class NewsAPI extends DataSource {
 				},
 			})
 
+			// find the oldest news
+			const oldestNews = await News.findOne({
+				where: { id: oldestId },
+			})
+
+			// add the additional options if there is an oldest news
+			const options = oldestNews && {
+				createdAt: {
+					[Op.lte]: oldestNews.createdAt,
+				},
+				id: {
+					[Op.lt]: oldestId,
+				},
+				type,
+			}
+
 			const news = await News.findAll({
-				offset: offsetIndex * dataToFetch,
 				limit: dataToFetch,
 				where: {
+					...options,
 					authorId: author.id,
 				},
 				order: [
@@ -508,38 +559,6 @@ class NewsAPI extends DataSource {
 			return link.type
 		} catch (error) {
 			return handleError("voteState", error)
-		}
-	}
-
-	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news that a certain user liked
-	async getLikedNews(offsetIndex, userId, dataToFetch) {
-		try {
-			// retrieve all the ids of the liked news
-			const likedNewsIds = await UserVote.findAll({
-				offset: offsetIndex * dataToFetch,
-				limit: dataToFetch,
-				where: {
-					UserId: userId,
-					type: "like",
-				},
-				order: [
-					["createdAt", "DESC"],
-					["id", "DESC"],
-				],
-			})
-
-			// get all the news based on the ids
-			const news = await Promise.all(
-				likedNewsIds.map(async ({ parentId }) => {
-					const newsById = await News.findOne({ where: { id: parentId } })
-
-					return newsById
-				})
-			)
-
-			return news
-		} catch (error) {
-			return handleError("getNews", error)
 		}
 	}
 
