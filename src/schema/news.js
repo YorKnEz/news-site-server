@@ -16,11 +16,11 @@ const {
 const typeDefs = gql`
 	type Query {
 		"Query to get news array for the home page"
-		newsForHome(offset: Int): [News!]!
+		newsForHome(oldestId: ID!): [News!]!
 		"Query to get reddit news array for the home page"
 		newsForHomeReddit(after: String): NewsForHomeRedditResponse!
 		"Gets all the news of a specific author"
-		newsForProfile(offset: Int, id: ID!): [News!]
+		newsForProfile(oldestId: ID!, id: ID!): [News!]
 		"Gets a news by id"
 		news(id: ID!): News!
 		"Gets the liked news by a user"
@@ -147,10 +147,10 @@ const typeDefs = gql`
 const resolvers = {
 	Query: {
 		// returns an array of news created on the site that will be used to populate the homepage
-		newsForHome: async (_, { offset }, { dataSources }) => {
+		newsForHome: async (_, { oldestId }, { dataSources }) => {
 			try {
 				const news = await dataSources.newsAPI.getNews(
-					offset,
+					oldestId,
 					"created",
 					dataToFetch
 				)
@@ -182,13 +182,13 @@ const resolvers = {
 			}
 		},
 		// returns an array of news of a certain author to display on his profile
-		newsForProfile: async (_, { offset, id }, { dataSources, token }) => {
+		newsForProfile: async (_, { oldestId, id }, { dataSources, token }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				const news = await dataSources.newsAPI.getAuthorNews(
-					offset,
+					oldestId,
 					id,
 					dataToFetch
 				)

@@ -13,14 +13,31 @@ class NewsAPI extends DataSource {
 	constructor() {
 		super()
 	}
-	// retrieve [newsToFetch] news based on an offset
+	// retrieve [newsToFetch] news based on the oldest fetched news id
 
-	async getNews(offset, type, dataToFetch) {
+	async getNews(oldestId, type, dataToFetch) {
 		try {
+			// find the oldest news
+			const oldestNews = await News.findOne({
+				where: { id: oldestId },
+			})
+
+			// add the additional options if there is an oldest news
+			const options = oldestNews && {
+				createdAt: {
+					[Op.lte]: oldestNews.createdAt,
+				},
+				id: {
+					[Op.lt]: oldestId,
+				},
+				type,
+			}
+
+			// get the news
 			const news = await News.findAll({
-				offset,
 				limit: dataToFetch,
 				where: {
+					...options,
 					type,
 				},
 				order: [
@@ -84,8 +101,8 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// retrieve [newsToFetch] news of a certain author basend on an offset
-	async getAuthorNews(offset, id, dataToFetch) {
+	// retrieve [newsToFetch] news of a certain author basend on the oldest fetched author id
+	async getAuthorNews(oldestId, id, dataToFetch) {
 		try {
 			const author = await User.findOne({
 				where: {
@@ -93,10 +110,26 @@ class NewsAPI extends DataSource {
 				},
 			})
 
+			// find the oldest news
+			const oldestNews = await News.findOne({
+				where: { id: oldestId },
+			})
+
+			// add the additional options if there is an oldest news
+			const options = oldestNews && {
+				createdAt: {
+					[Op.lte]: oldestNews.createdAt,
+				},
+				id: {
+					[Op.lt]: oldestId,
+				},
+				type,
+			}
+
 			const news = await News.findAll({
-				offset,
 				limit: dataToFetch,
 				where: {
+					...options,
 					authorId: author.id,
 				},
 				order: [
