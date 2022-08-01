@@ -77,7 +77,7 @@ exports.register = async (req, res, next) => {
 		const uuid = uuidv1()
 
 		// create the Token instance
-		await Token.create({
+		const token = await Token.create({
 			UserId: user.id,
 			token: uuid,
 		})
@@ -110,7 +110,7 @@ exports.register = async (req, res, next) => {
 				html: result,
 			}
 
-			mail.sendMail(mailOptions, (e, info) => {
+			mail.sendMail(mailOptions, async (e, info) => {
 				if (e) {
 					console.error(e)
 				} else {
