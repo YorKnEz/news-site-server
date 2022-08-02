@@ -148,11 +148,7 @@ const resolvers = {
 		// returns an array of news created on the site that will be used to populate the homepage
 		newsForHome: async (_, { oldestId }, { dataSources }) => {
 			try {
-				const news = await dataSources.newsAPI.getNews(
-					oldestId,
-					"created",
-					dataToFetch
-				)
+				const news = await dataSources.newsAPI.getNews(oldestId, dataToFetch)
 
 				return news
 			} catch (error) {
