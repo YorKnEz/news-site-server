@@ -1,4 +1,4 @@
-const { gql, AuthenticationError } = require("apollo-server")
+const { gql, AuthenticationError, ForbiddenError } = require("apollo-server")
 
 const { dataToFetch, handleError, handleMutationError } = require("../utils")
 
@@ -41,7 +41,7 @@ const typeDefs = gql`
 		"Human-readable message for the UI"
 		message: String!
 		"The comment"
-		comment: Comment!
+		comment: Comment
 	}
 
 	type VoteCommentResponse {
@@ -131,10 +131,19 @@ const resolvers = {
 		},
 	},
 	Mutation: {
-		addComment: async (_, { commentData }, { dataSources, token, userId }) => {
+		addComment: async (
+			_,
+			{ commentData },
+			{ dataSources, token, userId, verified }
+		) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (!verified)
+					throw new ForbiddenError(
+						"You must verify your email to perform this action."
+					)
 
 				const comment = await dataSources.commentAPI.addComment(
 					commentData,
@@ -154,11 +163,16 @@ const resolvers = {
 		editComment: async (
 			_,
 			{ commentData, id },
-			{ dataSources, token, userId }
+			{ dataSources, token, userId, verified }
 		) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (!verified)
+					throw new ForbiddenError(
+						"You must verify your email to perform this action."
+					)
 
 				const comment = await dataSources.commentAPI.editComment(
 					commentData,
@@ -176,10 +190,19 @@ const resolvers = {
 				return handleMutationError("updateComment", error)
 			}
 		},
-		removeComment: async (_, { id }, { dataSources, token, userId }) => {
+		removeComment: async (
+			_,
+			{ id },
+			{ dataSources, token, userId, verified }
+		) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (!verified)
+					throw new ForbiddenError(
+						"You must verify your email to perform this action."
+					)
 
 				const comment = await dataSources.commentAPI.removeComment(id, userId)
 

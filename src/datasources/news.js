@@ -15,7 +15,7 @@ class NewsAPI extends DataSource {
 	}
 	// retrieve [newsToFetch] news based on the oldest fetched news id
 
-	async getNews(oldestId, type, dataToFetch) {
+	async getNews(oldestId, dataToFetch) {
 		try {
 			// find the oldest news
 			const oldestNews = await News.findOne({
@@ -23,23 +23,20 @@ class NewsAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest news
-			const options = oldestNews && {
-				createdAt: {
-					[Op.lte]: oldestNews.createdAt,
-				},
-				id: {
-					[Op.lt]: oldestId,
-				},
-				type,
+			const options = {}
+
+			if (oldestNews) {
+				options.createdAt = { [Op.lte]: oldestNews.createdAt }
+
+				options.id = { [Op.lt]: oldestId }
 			}
+
+			options.type = "created"
 
 			// get the news
 			const news = await News.findAll({
 				limit: dataToFetch,
-				where: {
-					...options,
-					type,
-				},
+				where: options,
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],

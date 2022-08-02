@@ -52,9 +52,10 @@ async function startApolloServer() {
 
 					// add the token to the context
 					return {
+						token,
 						userId: data.user.id,
 						userRole: data.user.type,
-						token,
+						verified: data.user.verified,
 					}
 				}
 			} catch (error) {
