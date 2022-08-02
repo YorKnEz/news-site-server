@@ -229,7 +229,7 @@ const resolvers = {
 		createNews: async (
 			_,
 			{ newsData },
-			{ dataSources, token, userRole, userId }
+			{ dataSources, token, userRole, userId, verified }
 		) => {
 			try {
 				if (!token)
@@ -237,6 +237,11 @@ const resolvers = {
 
 				if (userRole !== "author")
 					throw new ForbiddenError("You must be an author to do this.")
+
+				if (!verified)
+					throw new ForbiddenError(
+						"You must verify your email to perform this action."
+					)
 
 				const newsId = await dataSources.newsAPI.createNews(newsData, userId)
 
@@ -253,7 +258,7 @@ const resolvers = {
 		updateNews: async (
 			_,
 			{ newsData, id },
-			{ dataSources, token, userId, userRole }
+			{ dataSources, token, userId, userRole, verified }
 		) => {
 			try {
 				if (!token)
@@ -261,6 +266,11 @@ const resolvers = {
 
 				if (userRole !== "author")
 					throw new ForbiddenError("You must be an author to do this.")
+
+				if (!verified)
+					throw new ForbiddenError(
+						"You must verify your email to perform this action."
+					)
 
 				// handle news update
 				const updatedNews = await dataSources.newsAPI.updateNews(
@@ -279,13 +289,22 @@ const resolvers = {
 				return handleMutationError("updateNews", error)
 			}
 		},
-		deleteNews: async (_, { id }, { dataSources, token, userId, userRole }) => {
+		deleteNews: async (
+			_,
+			{ id },
+			{ dataSources, token, userId, userRole, verified }
+		) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				if (userRole !== "author")
 					throw new ForbiddenError("You must be an author to do this.")
+
+				if (!verified)
+					throw new ForbiddenError(
+						"You must verify your email to perform this action."
+					)
 
 				// handle news delete
 				await dataSources.newsAPI.deleteNews(id, userId)
