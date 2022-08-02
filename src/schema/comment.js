@@ -41,7 +41,7 @@ const typeDefs = gql`
 		"Human-readable message for the UI"
 		message: String!
 		"The comment"
-		comment: Comment!
+		comment: Comment
 	}
 
 	type VoteCommentResponse {

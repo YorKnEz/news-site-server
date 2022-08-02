@@ -60,7 +60,7 @@ const typeDefs = gql`
 		"Human-readable message for the UI"
 		message: String!
 		"The id of the news that has been created"
-		id: ID!
+		id: ID
 	}
 
 	type UpdateNewsResponse {
