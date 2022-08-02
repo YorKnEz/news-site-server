@@ -4,7 +4,6 @@ const {
 	ForbiddenError,
 	UserInputError,
 } = require("apollo-server")
-const { News } = require("../database")
 
 const {
 	dataToFetch,
