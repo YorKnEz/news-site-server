@@ -31,6 +31,8 @@ const MAIL_PASS = process.env.MAIL_PASS
 
 // the port the api is hosted on
 const port = process.env.EXPRESS_SERVER_PORT
+// the port the client is hosted on
+const clientPort = process.env.CLIENT_PORT
 
 // required for reading the confirmation email html file
 const regEx = new RegExp(/[$][{][a-zA-Z0-9._#]*[}]/, "gm")
@@ -98,7 +100,7 @@ exports.register = async (req, res, next) => {
 				mailString.match(regEx),
 				{
 					firstName: user.firstName,
-					port,
+					port: clientPort,
 					uuid,
 				}
 			)
