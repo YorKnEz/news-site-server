@@ -41,6 +41,9 @@ const typeDefs = gql`
 			action: String!
 			id: ID!
 		): UpdateCommentsCounterResposne!
+
+		"Save a news. Action can be either 'save' or 'unsave'"
+		saveNews(action: String!, id: ID!): SaveNewsResponse!
 	}
 
 	input NewsInput {
@@ -49,6 +52,11 @@ const typeDefs = gql`
 		sources: String!
 		tags: String!
 		body: String!
+	}
+
+	type NewsForHomeRedditResponse {
+		after: String
+		news: [News!]
 	}
 
 	type CreateNewsResponse {
@@ -104,9 +112,13 @@ const typeDefs = gql`
 		comments: Int!
 	}
 
-	type NewsForHomeRedditResponse {
-		after: String
-		news: [News!]
+	type SaveNewsResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
 	}
 
 	"This is the structure of a news"
@@ -140,6 +152,8 @@ const typeDefs = gql`
 		dislikes: Int!
 		"The number of comments"
 		comments: Int
+		"Wether the news has been saved or not. Can be either 'save', 'unsave'"
+		saveState: String!
 	}
 `
 
@@ -360,6 +374,30 @@ const resolvers = {
 				return handleMutationError("updateCommentsCounter", error)
 			}
 		},
+		saveNews: async (_, { action, id }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (action === "save" || action === "unsave") {
+					const response = await dataSources.newsAPI.saveNews(
+						action,
+						id,
+						userId
+					)
+
+					return {
+						code: response.code,
+						success: response.success,
+						message: response.message,
+					}
+				} else {
+					throw new UserInputError("Invalid action.")
+				}
+			} catch (error) {
+				return handleMutationError("voteNews", error)
+			}
+		},
 	},
 	News: {
 		author: async ({ authorId, type }, _, { dataSources }) => {
@@ -405,6 +443,13 @@ const resolvers = {
 				return "none"
 			} catch (error) {
 				return handleError("voteState", error)
+			}
+		},
+		saveState: async ({ id }, _, { dataSources, userId }) => {
+			try {
+				return dataSources.newsAPI.getSaveState(id, "news", userId)
+			} catch (error) {
+				return handleError("saveState", error)
 			}
 		},
 	},

@@ -3,7 +3,7 @@ const { ForbiddenError, UserInputError } = require("apollo-server")
 const fs = require("fs")
 const { Op } = require("sequelize")
 
-const { News, User, UserVote } = require("../database")
+const { News, User, UserVote, UserSave } = require("../database")
 const { formatTitle, handleError } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
@@ -579,6 +579,73 @@ class NewsAPI extends DataSource {
 			return news.comments
 		} catch (error) {
 			return handleError("updateCommentsCounter", error)
+		}
+	}
+
+	async saveNews(action, newsId, userId) {
+		try {
+			// try to find if the news has already been saved
+			const link = await UserSave.findOne({
+				where: {
+					parentId: newsId,
+					parentType: "news",
+					UserId: userId,
+				},
+			})
+
+			// if the news hasn't been saved but the action is "save", save it
+			if (!link && action === "save") {
+				await UserSave.create({
+					parentId: newsId,
+					parentType: "news",
+					UserId: userId,
+				})
+
+				return {
+					code: 200,
+					success: true,
+					message: "News saved successfully",
+				}
+			}
+
+			if (link && action === "unsave") {
+				await link.destroy()
+
+				return {
+					code: 200,
+					success: true,
+					message: "News unsaved successfully",
+				}
+			}
+
+			return {
+				code: 400,
+				success: false,
+				message: "Invalid action",
+			}
+		} catch (error) {
+			return handleError("saveNews", error)
+		}
+	}
+
+	async getSaveState(parentId, parentType, userId) {
+		try {
+			// see if the
+			const link = await UserSave.findOne({
+				where: {
+					parentId,
+					parentType,
+					UserId: userId,
+				},
+			})
+
+			// if the link exists the state is saved
+			if (link) return "save"
+
+			// if not then the state is unsaved
+			return "unsave"
+		} catch (error) {
+			return handleError("getSaveState", error)
 		}
 	}
 }
