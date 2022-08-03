@@ -3,10 +3,15 @@ const { DataTypes } = require("sequelize")
 const { sequelize } = require("./sequelize")
 const User = require("./user")
 
-const UserLike = sequelize.define("UserLike", {
-	// the id of the news being liked
-	newsId: {
+const UserVote = sequelize.define("UserVote", {
+	// the id of the news or comment being voted
+	parentId: {
 		type: DataTypes.INTEGER,
+		allowNull: false,
+	},
+	// the type fo the parent being voted, can be either "news" or "comment"
+	parentType: {
+		type: DataTypes.STRING,
 		allowNull: false,
 	},
 	// the type means "like" or "dislike" to avoid creating two tables
@@ -16,6 +21,6 @@ const UserLike = sequelize.define("UserLike", {
 	},
 })
 
-UserLike.belongsTo(User)
+UserVote.belongsTo(User)
 
-module.exports = UserLike
+module.exports = UserVote

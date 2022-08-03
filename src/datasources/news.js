@@ -1,10 +1,9 @@
 const { DataSource } = require("apollo-datasource")
 const { ForbiddenError, UserInputError } = require("apollo-server")
-const format = require("date-fns/format")
 const fs = require("fs")
 const { Op } = require("sequelize")
 
-const { News, User, UserLike } = require("../database")
+const { News, User, UserVote } = require("../database")
 const { formatTitle, handleError } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
@@ -14,31 +13,67 @@ class NewsAPI extends DataSource {
 	constructor() {
 		super()
 	}
+	// retrieve [newsToFetch] news based on the oldest fetched news id
 
-	// get the total number of news in the database
-	async getRedditNewsCount() {
+	async getNews(oldestId, dataToFetch) {
 		try {
-			return News.count({
-				where: {
-					type: "reddit",
-				},
+			// find the oldest news
+			const oldestNews = await News.findOne({
+				where: { id: oldestId },
 			})
+
+			// add the additional options if there is an oldest news
+			const options = {}
+
+			if (oldestNews) {
+				options.createdAt = { [Op.lte]: oldestNews.createdAt }
+
+				options.id = { [Op.lt]: oldestId }
+			}
+
+			options.type = "created"
+
+			// get the news
+			const news = await News.findAll({
+				limit: dataToFetch,
+				where: options,
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			})
+
+			return news
 		} catch (error) {
-			return handleError("getRedditNewsCount", error)
+			return handleError("getNews", error)
 		}
 	}
 
-	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news
-	async getNews(offsetIndex, type, dataToFetch) {
+	// retrieve [dataToFetch] liked news based on an offset
+	async getLikedNews(offset, userId, dataToFetch) {
 		try {
-			const news = await News.findAll({
-				offset: offsetIndex * dataToFetch,
+			// retrieve all the ids of the liked news
+			const likedNewsIds = await UserVote.findAll({
+				offset,
 				limit: dataToFetch,
 				where: {
-					type,
+					UserId: userId,
+					type: "like",
 				},
-				order: [["createdAt", "DESC"]],
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 			})
+
+			// get all the news based on the ids
+			const news = await Promise.all(
+				likedNewsIds.map(async ({ parentId }) => {
+					const newsById = await News.findOne({ where: { id: parentId } })
+
+					return newsById
+				})
+			)
 
 			return news
 		} catch (error) {
@@ -63,8 +98,8 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news of a certain author
-	async getAuthorNews(offsetIndex, id, dataToFetch) {
+	// retrieve [newsToFetch] news of a certain author basend on the oldest fetched author id
+	async getAuthorNews(oldestId, id, dataToFetch) {
 		try {
 			const author = await User.findOne({
 				where: {
@@ -72,13 +107,32 @@ class NewsAPI extends DataSource {
 				},
 			})
 
+			// find the oldest news
+			const oldestNews = await News.findOne({
+				where: { id: oldestId },
+			})
+
+			// add the additional options if there is an oldest news
+			const options = oldestNews && {
+				createdAt: {
+					[Op.lte]: oldestNews.createdAt,
+				},
+				id: {
+					[Op.lt]: oldestId,
+				},
+				type,
+			}
+
 			const news = await News.findAll({
-				offset: offsetIndex * dataToFetch,
 				limit: dataToFetch,
 				where: {
+					...options,
 					authorId: author.id,
 				},
-				order: [["createdAt", "DESC"]],
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 			})
 
 			return news
@@ -91,11 +145,22 @@ class NewsAPI extends DataSource {
 	// news is an array
 	async addNewsFromReddit(newsData) {
 		try {
+			// map through the news
 			const news = newsData.map(async ({ data }) => {
+				// try to find if the current news has already been added
+				const news = await News.findOne({
+					where: { redditId: data.id },
+				})
+
+				// if the news exists, return it
+				if (news) return news.toJSON()
+
+				// if it doesn't exist, create it
 				const newsObject = await News.create({
+					redditId: data.id,
 					title: formatTitle(data.title),
 					authorId: data.author,
-					date: format(data.created * 1000, "MMMM d',' yyyy"),
+					createdAt: data.created * 1000,
 					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
 					sources: "https://www.reddit.com" + data.permalink,
@@ -103,11 +168,11 @@ class NewsAPI extends DataSource {
 					type: "reddit",
 				})
 
+				// and return it
 				return newsObject.toJSON()
 			})
 
 			return Promise.all(news)
-			// return Promise.all(news)
 		} catch (error) {
 			return handleError("addNewsFromReddit", error)
 		}
@@ -364,7 +429,7 @@ class NewsAPI extends DataSource {
 
 	// method for liking or disliking news based on the action type and the ids of the news and the user
 	// action - 'like' or 'dislike'
-	async likeNews(action, newsId, userId) {
+	async voteNews(action, newsId, userId) {
 		try {
 			/*
 				propName - if the user wants to like the news, we update propName of news
@@ -394,9 +459,10 @@ class NewsAPI extends DataSource {
 			if (!news) throw new UserInputError("Invalid id.")
 
 			// try to find if the user already liked the news
-			const link1 = await UserLike.findOne({
+			const link1 = await UserVote.findOne({
 				where: {
-					newsId,
+					parentId: newsId,
+					parentType: "news",
 					UserId: userId,
 					type: action,
 				},
@@ -424,9 +490,10 @@ class NewsAPI extends DataSource {
 			}
 
 			// try to find if the user disliked the news
-			const link2 = await UserLike.findOne({
+			const link2 = await UserVote.findOne({
 				where: {
-					newsId,
+					parentId: newsId,
+					parentType: "news",
 					UserId: userId,
 					type: action === "like" ? "dislike" : "like",
 				},
@@ -447,9 +514,10 @@ class NewsAPI extends DataSource {
 			}
 
 			// create the link between the user and the news
-			await UserLike.create({
+			await UserVote.create({
 				UserId: userId,
-				newsId: newsId,
+				parentId: newsId,
+				parentType: "news",
 				type: action,
 			})
 
@@ -467,17 +535,18 @@ class NewsAPI extends DataSource {
 				dislikes: news.dislikes,
 			}
 		} catch (error) {
-			return handleError("likeNews", error)
+			return handleError("voteNews", error)
 		}
 	}
 
-	async getLikeState(newsId, userId) {
+	async getVoteState(parentId, parentType, userId) {
 		try {
 			// find if the user liked or disliked the news
-			const link = await UserLike.findOne({
+			const link = await UserVote.findOne({
 				where: {
 					UserId: userId,
-					newsId,
+					parentId,
+					parentType,
 					type: { [Op.or]: ["like", "dislike"] },
 				},
 			})
@@ -486,37 +555,30 @@ class NewsAPI extends DataSource {
 
 			return link.type
 		} catch (error) {
-			return handleError("likeState", error)
+			return handleError("voteState", error)
 		}
 	}
 
-	// retrieve the first [newsToFetch] news after the first [newsToFetch] * offsetIndex news that a certain user liked
-	async getLikedNews(offsetIndex, userId, dataToFetch) {
+	// update the comments counter of the news
+	async updateCommentsCounter(action, newsId) {
 		try {
-			// retrieve all the ids of the liked news
-			const likedNewsIds = await UserLike.findAll({
-				offset: offsetIndex * dataToFetch,
-				limit: dataToFetch,
-				where: {
-					UserId: userId,
-					type: "like",
-				},
-				order: [["createdAt", "DESC"]],
+			// get the news
+			const news = await News.findOne({
+				where: { id: newsId },
 			})
 
-			// get all the news based on the ids
-			const news = await Promise.all(
-				likedNewsIds.map(async ({ newsId }) => {
-					console.log(newsId)
-					const newsById = await News.findOne({ where: { id: newsId } })
+			// if the news is not found, throw an error
+			if (!news) throw new UserInputError("Invalid input.")
 
-					return newsById
-				})
-			)
+			if (action === "up") await news.update({ comments: news.comments + 1 })
 
-			return news
+			if (action === "down") await news.update({ comments: news.comments - 1 })
+
+			await news.save()
+
+			return news.comments
 		} catch (error) {
-			return handleError("getNews", error)
+			return handleError("updateCommentsCounter", error)
 		}
 	}
 }

@@ -24,6 +24,12 @@ const News = sequelize.define("News", {
 		allowNull: true,
 		defaultValue: "",
 	},
+	// the id of the reddit news if its a reddit news
+	redditId: {
+		type: DataTypes.STRING,
+		allowNull: true,
+		unique: true,
+	},
 	// the sources of the news
 	sources: {
 		type: DataTypes.STRING(512),
@@ -33,6 +39,7 @@ const News = sequelize.define("News", {
 	tags: {
 		type: DataTypes.STRING(512),
 		allowNull: true,
+		defaultValue: "",
 	},
 	// the body of the news, the information
 	body: {
@@ -51,6 +58,12 @@ const News = sequelize.define("News", {
 		defaultValue: 0,
 	},
 	dislikes: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+		defaultValue: 0,
+	},
+	// number of comments
+	comments: {
 		type: DataTypes.INTEGER,
 		allowNull: false,
 		defaultValue: 0,

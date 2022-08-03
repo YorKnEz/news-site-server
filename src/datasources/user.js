@@ -32,6 +32,27 @@ class UserAPI extends DataSource {
 		}
 	}
 
+	async getUserById(userId) {
+		try {
+			const user = await User.findOne({
+				where: {
+					id: userId,
+				},
+			})
+
+			if (!user) {
+				throw {
+					status: 404,
+					message: "User not found.",
+				}
+			}
+
+			return user
+		} catch (error) {
+			return handleError("getAuthorById", error)
+		}
+	}
+
 	async searchAuthors(name) {
 		try {
 			// find the author whose first, last or full name is matching search query
@@ -42,6 +63,7 @@ class UserAPI extends DataSource {
 						{ firstname: name },
 						{ lastName: name },
 					],
+					type: "author",
 				},
 			})
 
@@ -53,15 +75,18 @@ class UserAPI extends DataSource {
 		}
 	}
 
-	async getFollowedAuthors(offsetIndex, userId, dataToFetch) {
+	async getFollowedAuthors(offset, userId, dataToFetch) {
 		try {
 			const authorIds = await UserFollow.findAll({
-				offset: offsetIndex * dataToFetch,
+				offset,
 				limit: dataToFetch,
 				where: {
 					UserId: userId,
 				},
-				order: [["createdAt", "DESC"]],
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 				attributes: ["authorId"],
 			})
 

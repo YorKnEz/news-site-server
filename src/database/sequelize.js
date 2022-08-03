@@ -16,6 +16,7 @@ const sequelize = new Sequelize({
 	port: DB_PORT,
 	dialect: "mysql",
 	logging: false,
+	alter: true,
 })
 
 // test the connection to the database
