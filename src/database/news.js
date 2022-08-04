@@ -3,6 +3,11 @@ const { DataTypes } = require("sequelize")
 const { sequelize } = require("./sequelize")
 
 const News = sequelize.define("News", {
+	createdAt: {
+		type: DataTypes.DATE(6),
+		allowNull: false,
+		defaultValue: DataTypes.NOW,
+	},
 	// the title of the news
 	title: {
 		type: DataTypes.STRING,
