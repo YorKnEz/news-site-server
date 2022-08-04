@@ -17,9 +17,6 @@ const typeDefs = gql`
 		editComment(commentData: CommentInput!, id: ID!): CommentResponse!
 		"Remove a comment"
 		removeComment(id: ID!): CommentResponse!
-
-		"Toggle vote comment. Action can be either 'like' or 'dislike'"
-		voteComment(action: String!, id: ID!): VoteCommentResponse!
 		"Increase or decrease the replies counter of a comment"
 		updateRepliesCounter(
 			action: String!
@@ -45,19 +42,6 @@ const typeDefs = gql`
 		message: String!
 		"The comment"
 		comment: Comment
-	}
-
-	type VoteCommentResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of likes"
-		likes: Int!
-		"Updated number of dislikes"
-		dislikes: Int!
 	}
 
 	type UpdateRepliesCounterResponse {
@@ -228,36 +212,6 @@ const resolvers = {
 				}
 			} catch (error) {
 				return handleMutationError("removeComment", error)
-			}
-		},
-		voteComment: async (_, { action, id }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				if (action === "like" || action === "dislike") {
-					const response = await dataSources.commentAPI.voteComment(
-						action,
-						id,
-						userId
-					)
-
-					return {
-						code: 200,
-						success: true,
-						message: response.message,
-						likes: response.likes,
-						dislikes: response.dislikes,
-					}
-				} else {
-					throw new UserInputError("Invalid action.")
-				}
-			} catch (error) {
-				return {
-					...handleMutationError("voteComment", error),
-					likes: 0,
-					dislikes: 0,
-				}
 			}
 		},
 		updateRepliesCounter: async (_, { action, id }, { dataSources, token }) => {
