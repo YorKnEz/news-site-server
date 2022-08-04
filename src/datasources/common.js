@@ -127,4 +127,50 @@ class CommonAPI extends DataSource {
 		}
 	}
 
+	// save a news or comment
+	async save(action, parentId, parentType, userId) {
+		try {
+			// try to find if the parent has already been saved
+			const link = await UserSave.findOne({
+				where: {
+					parentId,
+					parentType,
+					UserId: userId,
+				},
+			})
+
+			// if the parent hasn't been saved but the action is "save", save it
+			if (!link && action === "save") {
+				await UserSave.create({
+					parentId,
+					parentType,
+					UserId: userId,
+				})
+
+				return {
+					code: 200,
+					success: true,
+					message: "Saved successfully",
+				}
+			}
+
+			if (link && action === "unsave") {
+				await link.destroy()
+
+				return {
+					code: 200,
+					success: true,
+					message: "Unsaved successfully",
+				}
+			}
+
+			return {
+				code: 400,
+				success: false,
+				message: "Invalid action",
+			}
+		} catch (error) {
+			return handleError("save", error)
+		}
+	}
 module.exports = CommonAPI

@@ -40,9 +40,6 @@ const typeDefs = gql`
 			action: String!
 			id: ID!
 		): UpdateCommentsCounterResposne!
-
-		"Save a news. Action can be either 'save' or 'unsave'"
-		saveNews(action: String!, id: ID!): SaveNewsResponse!
 	}
 
 	input NewsInput {
@@ -96,15 +93,6 @@ const typeDefs = gql`
 		message: String!
 		"Updated number of comments"
 		comments: Int!
-	}
-
-	type SaveNewsResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
 	}
 
 	"This is the structure of a news"
@@ -353,30 +341,6 @@ const resolvers = {
 					...handleMutationError("updateCommentsCounter", error),
 					comments: 0,
 				}
-			}
-		},
-		saveNews: async (_, { action, id }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				if (action === "save" || action === "unsave") {
-					const response = await dataSources.newsAPI.saveNews(
-						action,
-						id,
-						userId
-					)
-
-					return {
-						code: response.code,
-						success: response.success,
-						message: response.message,
-					}
-				} else {
-					throw new UserInputError("Invalid action.")
-				}
-			} catch (error) {
-				return handleMutationError("saveNews", error)
 			}
 		},
 	},
