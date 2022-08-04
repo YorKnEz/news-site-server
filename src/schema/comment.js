@@ -140,7 +140,7 @@ const resolvers = {
 
 				return comments
 			} catch (error) {
-				return handleError("commentForNews", error)
+				return handleError("commentReplies", error)
 			}
 		},
 	},
@@ -201,7 +201,7 @@ const resolvers = {
 					comment,
 				}
 			} catch (error) {
-				return handleMutationError("updateComment", error)
+				return handleMutationError("editComment", error)
 			}
 		},
 		removeComment: async (
@@ -254,7 +254,7 @@ const resolvers = {
 				}
 			} catch (error) {
 				return {
-					...handleMutationError("voteNews", error),
+					...handleMutationError("voteComment", error),
 					likes: 0,
 					dislikes: 0,
 				}

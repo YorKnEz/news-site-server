@@ -404,7 +404,7 @@ const resolvers = {
 					throw new UserInputError("Invalid action.")
 				}
 			} catch (error) {
-				return handleMutationError("voteNews", error)
+				return handleMutationError("saveNews", error)
 			}
 		},
 	},
