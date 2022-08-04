@@ -48,35 +48,43 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// retrieve [dataToFetch] liked news based on an offset
-	async getLikedNews(offset, userId, dataToFetch) {
+	// retrieve [newsToFetch] news of a certain author basend on the oldest fetched author id
+	async getAuthorNews(oldestId, id, dataToFetch) {
 		try {
-			// retrieve all the ids of the liked news
-			const likedNewsIds = await UserVote.findAll({
-				offset,
-				limit: dataToFetch,
+			const author = await User.findOne({
 				where: {
-					UserId: userId,
-					type: "like",
+					id,
 				},
+			})
+
+			// find the oldest news
+			const oldestNews = await News.findOne({
+				where: { id: oldestId },
+			})
+
+			// add the additional options if there is an oldest news
+			const options = {}
+
+			if (oldestNews) {
+				options.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.id = { [Op.lt]: oldestId }
+			}
+
+			options.type = "created"
+			options.authorId = author.id
+
+			const news = await News.findAll({
+				limit: dataToFetch,
+				where: options,
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
 			})
 
-			// get all the news based on the ids
-			const news = await Promise.all(
-				likedNewsIds.map(async ({ parentId }) => {
-					const newsById = await News.findOne({ where: { id: parentId } })
-
-					return newsById
-				})
-			)
-
 			return news
 		} catch (error) {
-			return handleError("getNews", error)
+			return handleError("getAuthorNews", error)
 		}
 	}
 
@@ -176,6 +184,21 @@ class NewsAPI extends DataSource {
 			return handleError("getSavedNews")
 		}
 	}
+
+	// retrieve one news with the id passed
+	async getNewsById(newsId) {
+		try {
+			const news = await News.findOne({
+				where: {
+					id: newsId,
+				},
+			})
+
+			if (!news) throw "News not in our database"
+
+			return news
+		} catch (error) {
+			return handleError("getNewsById", error)
 		}
 	}
 
@@ -392,7 +415,7 @@ class NewsAPI extends DataSource {
 				throw new ForbiddenError("You are not the author of this news.")
 
 			// delete the old thumbnail from the server if there is a new one
-			if (newsData.thumbnail) {
+			if (newsData.thumbnail && news.thumbnail) {
 				const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
 
 				// delete the thumbnail from the server
@@ -593,7 +616,7 @@ class NewsAPI extends DataSource {
 
 			return link.type
 		} catch (error) {
-			return handleError("voteState", error)
+			return handleError("getVoteState", error)
 		}
 	}
 
