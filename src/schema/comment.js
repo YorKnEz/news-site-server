@@ -263,7 +263,7 @@ const resolvers = {
 	Comment: {
 		author: async ({ body, UserId }, _, { dataSources }) => {
 			try {
-				if (body === "[deleted]") {
+				if (body === "<p>[deleted]</p>") {
 					return {
 						id: "[deleted]",
 						fullName: "[deleted]",

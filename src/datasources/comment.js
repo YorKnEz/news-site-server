@@ -120,7 +120,7 @@ class CommentAPI extends DataSource {
 
 			// in order to avoid complications, every deleted comment will have it's author replaced with [deleted] and the content of the comment with [deleted]
 			await comment.update({
-				body: "[deleted]",
+				body: "<p>[deleted]</p>",
 			})
 
 			// save changes
