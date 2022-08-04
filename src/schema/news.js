@@ -383,7 +383,8 @@ const resolvers = {
 		},
 		voteState: async ({ id }, _, { dataSources, userId }) => {
 			try {
-				if (userId) return dataSources.newsAPI.getVoteState(id, "news", userId)
+				if (userId)
+					return dataSources.commonAPI.getVoteState(id, "news", userId)
 
 				return "none"
 			} catch (error) {
@@ -392,7 +393,8 @@ const resolvers = {
 		},
 		saveState: async ({ id }, _, { dataSources, userId }) => {
 			try {
-				if (userId) return dataSources.newsAPI.getSaveState(id, "news", userId)
+				if (userId)
+					return dataSources.commonAPI.getSaveState(id, "news", userId)
 
 				return "unsave"
 			} catch (error) {

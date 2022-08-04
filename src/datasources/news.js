@@ -488,26 +488,6 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	async getVoteState(parentId, parentType, userId) {
-		try {
-			// find if the user liked or disliked the news
-			const link = await UserVote.findOne({
-				where: {
-					UserId: userId,
-					parentId,
-					parentType,
-					type: { [Op.or]: ["like", "dislike"] },
-				},
-			})
-
-			if (!link) return "none"
-
-			return link.type
-		} catch (error) {
-			return handleError("getVoteState", error)
-		}
-	}
-
 	// update the comments counter of the news
 	async updateCommentsCounter(action, newsId) {
 		try {

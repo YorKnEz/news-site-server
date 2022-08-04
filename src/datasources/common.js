@@ -127,6 +127,26 @@ class CommonAPI extends DataSource {
 		}
 	}
 
+	async getVoteState(parentId, parentType, userId) {
+		try {
+			// find if the user liked or disliked the news
+			const link = await UserVote.findOne({
+				where: {
+					UserId: userId,
+					parentId,
+					parentType,
+					type: { [Op.or]: ["like", "dislike"] },
+				},
+			})
+
+			if (!link) return "none"
+
+			return link.type
+		} catch (error) {
+			return handleError("getVoteState", error)
+		}
+	}
+
 	// save a news or comment
 	async save(action, parentId, parentType, userId) {
 		try {
@@ -173,4 +193,27 @@ class CommonAPI extends DataSource {
 			return handleError("save", error)
 		}
 	}
+
+	async getSaveState(parentId, parentType, userId) {
+		try {
+			// see if the
+			const link = await UserSave.findOne({
+				where: {
+					parentId,
+					parentType,
+					UserId: userId,
+				},
+			})
+
+			// if the link exists the state is saved
+			if (link) return "save"
+
+			// if not then the state is unsaved
+			return "unsave"
+		} catch (error) {
+			return handleError("getSaveState", error)
+		}
+	}
+}
+
 module.exports = CommonAPI
