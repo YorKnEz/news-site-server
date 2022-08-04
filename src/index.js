@@ -10,6 +10,7 @@ const {
 	RedditAPI,
 	UserAPI,
 	UserFollowAPI,
+	CommonAPI,
 } = require("./datasources")
 const { testConnection } = require("./database/sequelize")
 const { startExpressServer } = require("./express-server")
@@ -27,6 +28,7 @@ async function startApolloServer() {
 		dataSources: () => {
 			return {
 				commentAPI: new CommentAPI(),
+				commonAPI: new CommonAPI(),
 				newsAPI: new NewsAPI(),
 				redditAPI: new RedditAPI(),
 				userAPI: new UserAPI(),

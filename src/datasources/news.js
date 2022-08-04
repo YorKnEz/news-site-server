@@ -27,7 +27,6 @@ class NewsAPI extends DataSource {
 
 			if (oldestNews) {
 				options.createdAt = { [Op.lte]: oldestNews.createdAt }
-
 				options.id = { [Op.lt]: oldestId }
 			}
 
@@ -49,35 +48,43 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// retrieve [dataToFetch] liked news based on an offset
-	async getLikedNews(offset, userId, dataToFetch) {
+	// retrieve [newsToFetch] news of a certain author basend on the oldest fetched author id
+	async getAuthorNews(oldestId, id, dataToFetch) {
 		try {
-			// retrieve all the ids of the liked news
-			const likedNewsIds = await UserVote.findAll({
-				offset,
-				limit: dataToFetch,
+			const author = await User.findOne({
 				where: {
-					UserId: userId,
-					type: "like",
+					id,
 				},
+			})
+
+			// find the oldest news
+			const oldestNews = await News.findOne({
+				where: { id: oldestId },
+			})
+
+			// add the additional options if there is an oldest news
+			const options = {}
+
+			if (oldestNews) {
+				options.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.id = { [Op.lt]: oldestId }
+			}
+
+			options.type = "created"
+			options.authorId = author.id
+
+			const news = await News.findAll({
+				limit: dataToFetch,
+				where: options,
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
 			})
 
-			// get all the news based on the ids
-			const news = await Promise.all(
-				likedNewsIds.map(async ({ parentId }) => {
-					const newsById = await News.findOne({ where: { id: parentId } })
-
-					return newsById
-				})
-			)
-
 			return news
 		} catch (error) {
-			return handleError("getNews", error)
+			return handleError("getAuthorNews", error)
 		}
 	}
 
@@ -95,49 +102,6 @@ class NewsAPI extends DataSource {
 			return news
 		} catch (error) {
 			return handleError("getNewsById", error)
-		}
-	}
-
-	// retrieve [newsToFetch] news of a certain author basend on the oldest fetched author id
-	async getAuthorNews(oldestId, id, dataToFetch) {
-		try {
-			const author = await User.findOne({
-				where: {
-					id,
-				},
-			})
-
-			// find the oldest news
-			const oldestNews = await News.findOne({
-				where: { id: oldestId },
-			})
-
-			// add the additional options if there is an oldest news
-			const options = oldestNews && {
-				createdAt: {
-					[Op.lte]: oldestNews.createdAt,
-				},
-				id: {
-					[Op.lt]: oldestId,
-				},
-				type,
-			}
-
-			const news = await News.findAll({
-				limit: dataToFetch,
-				where: {
-					...options,
-					authorId: author.id,
-				},
-				order: [
-					["createdAt", "DESC"],
-					["id", "DESC"],
-				],
-			})
-
-			return news
-		} catch (error) {
-			return handleError("getAuthorNews", error)
 		}
 	}
 
@@ -354,7 +318,7 @@ class NewsAPI extends DataSource {
 				throw new ForbiddenError("You are not the author of this news.")
 
 			// delete the old thumbnail from the server if there is a new one
-			if (newsData.thumbnail) {
+			if (newsData.thumbnail && news.thumbnail) {
 				const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
 
 				// delete the thumbnail from the server
@@ -427,138 +391,6 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// method for liking or disliking news based on the action type and the ids of the news and the user
-	// action - 'like' or 'dislike'
-	async voteNews(action, newsId, userId) {
-		try {
-			/*
-				propName - if the user wants to like the news, we update propName of news
-				propName2 - if the user wants to like the news, but he already disliked it, we update propName and propName2 of news
-				message1 - message to display if the user removed the like successfully
-				message2 - message to display if the user liked the news successfully
-			*/
-			const options = {
-				like: {
-					propName: "likes",
-					propName2: "dislikes",
-					message1: "News like removed",
-					message2: "News liked",
-				},
-				dislike: {
-					propName: "dislikes",
-					propName2: "likes",
-					message1: "News dislike removed",
-					message2: "News disliked",
-				},
-			}
-
-			// first check if the news exists
-			const news = await News.findOne({ where: { id: newsId } })
-
-			// if the news doesn't exist, throw an error
-			if (!news) throw new UserInputError("Invalid id.")
-
-			// try to find if the user already liked the news
-			const link1 = await UserVote.findOne({
-				where: {
-					parentId: newsId,
-					parentType: "news",
-					UserId: userId,
-					type: action,
-				},
-			})
-
-			// if he already liked the news, remove the like
-			if (link1) {
-				// remove the link
-				await link1.destroy()
-
-				// update likes counter
-				await news.update({
-					[options[action].propName]: news[options[action].propName] - 1,
-				})
-
-				// save changes
-				await news.save()
-
-				// return message
-				return {
-					message: options[action].message1,
-					likes: news.likes,
-					dislikes: news.dislikes,
-				}
-			}
-
-			// try to find if the user disliked the news
-			const link2 = await UserVote.findOne({
-				where: {
-					parentId: newsId,
-					parentType: "news",
-					UserId: userId,
-					type: action === "like" ? "dislike" : "like",
-				},
-			})
-
-			// if he already disliked the news, remove the dislike in order to add the like
-			if (link2) {
-				// remove the link
-				link2.destroy()
-
-				// update dislikes counter
-				await news.update({
-					[options[action].propName2]: news[options[action].propName2] - 1,
-				})
-
-				// save changes
-				await news.save()
-			}
-
-			// create the link between the user and the news
-			await UserVote.create({
-				UserId: userId,
-				parentId: newsId,
-				parentType: "news",
-				type: action,
-			})
-
-			// update likes counter
-			await news.update({
-				[options[action].propName]: news[options[action].propName] + 1,
-			})
-
-			// save changes
-			await news.save()
-
-			return {
-				message: options[action].message2,
-				likes: news.likes,
-				dislikes: news.dislikes,
-			}
-		} catch (error) {
-			return handleError("voteNews", error)
-		}
-	}
-
-	async getVoteState(parentId, parentType, userId) {
-		try {
-			// find if the user liked or disliked the news
-			const link = await UserVote.findOne({
-				where: {
-					UserId: userId,
-					parentId,
-					parentType,
-					type: { [Op.or]: ["like", "dislike"] },
-				},
-			})
-
-			if (!link) return "none"
-
-			return link.type
-		} catch (error) {
-			return handleError("voteState", error)
-		}
-	}
-
 	// update the comments counter of the news
 	async updateCommentsCounter(action, newsId) {
 		try {
@@ -579,73 +411,6 @@ class NewsAPI extends DataSource {
 			return news.comments
 		} catch (error) {
 			return handleError("updateCommentsCounter", error)
-		}
-	}
-
-	async saveNews(action, newsId, userId) {
-		try {
-			// try to find if the news has already been saved
-			const link = await UserSave.findOne({
-				where: {
-					parentId: newsId,
-					parentType: "news",
-					UserId: userId,
-				},
-			})
-
-			// if the news hasn't been saved but the action is "save", save it
-			if (!link && action === "save") {
-				await UserSave.create({
-					parentId: newsId,
-					parentType: "news",
-					UserId: userId,
-				})
-
-				return {
-					code: 200,
-					success: true,
-					message: "News saved successfully",
-				}
-			}
-
-			if (link && action === "unsave") {
-				await link.destroy()
-
-				return {
-					code: 200,
-					success: true,
-					message: "News unsaved successfully",
-				}
-			}
-
-			return {
-				code: 400,
-				success: false,
-				message: "Invalid action",
-			}
-		} catch (error) {
-			return handleError("saveNews", error)
-		}
-	}
-
-	async getSaveState(parentId, parentType, userId) {
-		try {
-			// see if the
-			const link = await UserSave.findOne({
-				where: {
-					parentId,
-					parentType,
-					UserId: userId,
-				},
-			})
-
-			// if the link exists the state is saved
-			if (link) return "save"
-
-			// if not then the state is unsaved
-			return "unsave"
-		} catch (error) {
-			return handleError("getSaveState", error)
 		}
 	}
 }

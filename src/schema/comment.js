@@ -17,9 +17,6 @@ const typeDefs = gql`
 		editComment(commentData: CommentInput!, id: ID!): CommentResponse!
 		"Remove a comment"
 		removeComment(id: ID!): CommentResponse!
-
-		"Toggle vote comment. Action can be either 'like' or 'dislike'"
-		voteComment(action: String!, id: ID!): VoteCommentResponse!
 		"Increase or decrease the replies counter of a comment"
 		updateRepliesCounter(
 			action: String!
@@ -42,19 +39,6 @@ const typeDefs = gql`
 		message: String!
 		"The comment"
 		comment: Comment
-	}
-
-	type VoteCommentResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of likes"
-		likes: Int!
-		"Updated number of dislikes"
-		dislikes: Int!
 	}
 
 	type UpdateRepliesCounterResponse {
@@ -88,6 +72,8 @@ const typeDefs = gql`
 		createdAt: String!
 		"The number of replies"
 		replies: Int
+		"Wether the comment has been saved or not. Can be either 'save', 'unsave'"
+		saveState: String!
 	}
 `
 
@@ -126,7 +112,7 @@ const resolvers = {
 
 				return comments
 			} catch (error) {
-				return handleError("commentForNews", error)
+				return handleError("commentReplies", error)
 			}
 		},
 	},
@@ -187,7 +173,7 @@ const resolvers = {
 					comment,
 				}
 			} catch (error) {
-				return handleMutationError("updateComment", error)
+				return handleMutationError("editComment", error)
 			}
 		},
 		removeComment: async (
@@ -216,32 +202,6 @@ const resolvers = {
 				return handleMutationError("removeComment", error)
 			}
 		},
-		voteComment: async (_, { action, id }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				if (action === "like" || action === "dislike") {
-					const response = await dataSources.commentAPI.voteComment(
-						action,
-						id,
-						userId
-					)
-
-					return {
-						code: 200,
-						success: true,
-						message: response.message,
-						likes: response.likes,
-						dislikes: response.dislikes,
-					}
-				} else {
-					throw new UserInputError("Invalid action.")
-				}
-			} catch (error) {
-				return handleMutationError("voteNews", error)
-			}
-		},
 		updateRepliesCounter: async (_, { action, id }, { dataSources, token }) => {
 			try {
 				if (!token)
@@ -256,14 +216,17 @@ const resolvers = {
 					replies,
 				}
 			} catch (error) {
-				return handleMutationError("updateRepliesCounter", error)
+				return {
+					...handleMutationError("updateRepliesCounter", error),
+					replies: 0,
+				}
 			}
 		},
 	},
 	Comment: {
 		author: async ({ body, UserId }, _, { dataSources }) => {
 			try {
-				if (body === "[deleted]") {
+				if (body === "<p>[deleted]</p>") {
 					return {
 						id: "[deleted]",
 						fullName: "[deleted]",
@@ -285,11 +248,21 @@ const resolvers = {
 		voteState: async ({ id }, _, { dataSources, userId }) => {
 			try {
 				if (userId)
-					return dataSources.newsAPI.getVoteState(id, "comment", userId)
+					return dataSources.commonAPI.getVoteState(id, "comment", userId)
 
 				return "none"
 			} catch (error) {
 				return handleError("voteState", error)
+			}
+		},
+		saveState: async ({ id }, _, { dataSources, userId }) => {
+			try {
+				if (userId)
+					return dataSources.commonAPI.getSaveState(id, "comment", userId)
+
+				return "unsave"
+			} catch (error) {
+				return handleError("saveState", error)
 			}
 		},
 	},

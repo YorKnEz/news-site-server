@@ -4,6 +4,11 @@ const { sequelize } = require("./sequelize")
 const User = require("./user")
 
 const UserVote = sequelize.define("UserVote", {
+	createdAt: {
+		type: DataTypes.DATE(6),
+		allowNull: false,
+		defaultValue: DataTypes.NOW,
+	},
 	// the id of the news or comment being voted
 	parentId: {
 		type: DataTypes.INTEGER,

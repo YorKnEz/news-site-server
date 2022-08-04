@@ -4,6 +4,11 @@ const { sequelize } = require("./sequelize")
 const User = require("./user")
 
 const UserSave = sequelize.define("UserSave", {
+	createdAt: {
+		type: DataTypes.DATE(6),
+		allowNull: false,
+		defaultValue: DataTypes.NOW,
+	},
 	// the id of the news or comment being saved
 	parentId: {
 		type: DataTypes.INTEGER,

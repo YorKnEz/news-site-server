@@ -3,7 +3,6 @@ const { UserInputError } = require("apollo-server")
 const { Op } = require("sequelize")
 
 const { Comment, News, UserVote } = require("../database")
-const comment = require("../schema/comment")
 const { handleError } = require("../utils")
 
 class CommentAPI extends DataSource {
@@ -120,7 +119,7 @@ class CommentAPI extends DataSource {
 
 			// in order to avoid complications, every deleted comment will have it's author replaced with [deleted] and the content of the comment with [deleted]
 			await comment.update({
-				body: "[deleted]",
+				body: "<p>[deleted]</p>",
 			})
 
 			// save changes
@@ -130,116 +129,6 @@ class CommentAPI extends DataSource {
 			return comment
 		} catch (error) {
 			return handleError("removeComment", error)
-		}
-	}
-
-	async voteComment(action, commentId, userId) {
-		try {
-			/*
-				propName - if the user wants to like the comment, we update propName of comment
-				propName2 - if the user wants to like the comment, but he already disliked it, we update propName and propName2 of comment
-				message1 - message to display if the user removed the like successfully
-				message2 - message to display if the user liked the news successfully
-			*/
-			const options = {
-				like: {
-					propName: "likes",
-					propName2: "dislikes",
-					message1: "Comment like removed",
-					message2: "Comment liked",
-				},
-				dislike: {
-					propName: "dislikes",
-					propName2: "likes",
-					message1: "Comment dislike removed",
-					message2: "Comment disliked",
-				},
-			}
-
-			// first check if the comment exists
-			const comment = await Comment.findOne({ where: { id: commentId } })
-
-			// if the comment doesn't exist, throw an error
-			if (!comment) throw new UserInputError("Invalid id.")
-
-			// try to find if the user already liked the comment
-			const link1 = await UserVote.findOne({
-				where: {
-					parentId: commentId,
-					parentType: "comment",
-					UserId: userId,
-					type: action,
-				},
-			})
-
-			// if he already liked the comment, remove the like
-			if (link1) {
-				// remove the link
-				await link1.destroy()
-
-				// update likes counter
-				await comment.update({
-					[options[action].propName]: comment[options[action].propName] - 1,
-				})
-
-				// save changes
-				await comment.save()
-
-				// return message
-				return {
-					message: options[action].message1,
-					likes: comment.likes,
-					dislikes: comment.dislikes,
-				}
-			}
-
-			// try to find if the user disliked the comment
-			const link2 = await UserVote.findOne({
-				where: {
-					parentId: commentId,
-					parentType: "comment",
-					UserId: userId,
-					type: action === "like" ? "dislike" : "like",
-				},
-			})
-
-			// if he already disliked the comment, remove the dislike in order to add the like
-			if (link2) {
-				// remove the link
-				link2.destroy()
-
-				// update dislikes counter
-				await comment.update({
-					[options[action].propName2]: comment[options[action].propName2] - 1,
-				})
-
-				// save changes
-				await comment.save()
-			}
-
-			// create the link between the user and the comment
-			await UserVote.create({
-				UserId: userId,
-				parentId: commentId,
-				parentType: "comment",
-				type: action,
-			})
-
-			// update likes counter
-			await comment.update({
-				[options[action].propName]: comment[options[action].propName] + 1,
-			})
-
-			// save changes
-			await comment.save()
-
-			return {
-				message: options[action].message2,
-				likes: comment.likes,
-				dislikes: comment.dislikes,
-			}
-		} catch (error) {
-			return handleError("voteComment", error)
 		}
 	}
 

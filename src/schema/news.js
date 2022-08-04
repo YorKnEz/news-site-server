@@ -22,8 +22,6 @@ const typeDefs = gql`
 		newsForProfile(oldestId: ID!, id: ID!): [News!]
 		"Gets a news by id"
 		news(id: ID!): News!
-		"Gets the liked news by a user"
-		likedNews(offset: Int): [News!]
 	}
 
 	type Mutation {
@@ -33,17 +31,11 @@ const typeDefs = gql`
 		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
 		"Deletes a news by id"
 		deleteNews(id: ID!): DeleteNewsResponse!
-
-		"Toggle vote news. Action can be either 'like' or 'dislike'"
-		voteNews(action: String!, id: ID!): VoteNewsResponse!
 		"Increase or decrease the comments counter of a news"
 		updateCommentsCounter(
 			action: String!
 			id: ID!
 		): UpdateCommentsCounterResposne!
-
-		"Save a news. Action can be either 'save' or 'unsave'"
-		saveNews(action: String!, id: ID!): SaveNewsResponse!
 	}
 
 	input NewsInput {
@@ -67,7 +59,7 @@ const typeDefs = gql`
 		"Human-readable message for the UI"
 		message: String!
 		"The id of the news that has been created"
-		id: ID
+		id: ID!
 	}
 
 	type UpdateNewsResponse {
@@ -88,19 +80,6 @@ const typeDefs = gql`
 		message: String!
 	}
 
-	type VoteNewsResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of likes"
-		likes: Int!
-		"Updated number of dislikes"
-		dislikes: Int!
-	}
-
 	type UpdateCommentsCounterResposne {
 		"Similar to HTTP status code, represents the status of the mutation"
 		code: Int!
@@ -110,15 +89,6 @@ const typeDefs = gql`
 		message: String!
 		"Updated number of comments"
 		comments: Int!
-	}
-
-	type SaveNewsResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
 	}
 
 	"This is the structure of a news"
@@ -137,7 +107,7 @@ const typeDefs = gql`
 		"The tags of the news, that help for better searching"
 		tags: String
 		"The body of the news"
-		body: String
+		body: String!
 		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site)"
 		type: String!
 		"The creation date of the news"
@@ -217,22 +187,6 @@ const resolvers = {
 				return handleError("news", error)
 			}
 		},
-		likedNews: async (_, { offset }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				const news = await dataSources.newsAPI.getLikedNews(
-					offset,
-					userId,
-					dataToFetch
-				)
-
-				return news
-			} catch (error) {
-				return handleError("likedNews", error)
-			}
-		},
 	},
 	Mutation: {
 		createNews: async (
@@ -261,7 +215,10 @@ const resolvers = {
 					id: newsId,
 				}
 			} catch (error) {
-				return handleMutationError("createNews", error)
+				return {
+					...handleMutationError("createNews", error),
+					id: 0,
+				}
 			}
 		},
 		updateNews: async (
@@ -292,7 +249,6 @@ const resolvers = {
 					code: 200,
 					success: true,
 					message: "The news has been successfully updated",
-					news: updatedNews,
 				}
 			} catch (error) {
 				return handleMutationError("updateNews", error)
@@ -327,32 +283,6 @@ const resolvers = {
 				return handleMutationError("deleteNews", error)
 			}
 		},
-		voteNews: async (_, { action, id }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				if (action === "like" || action === "dislike") {
-					const response = await dataSources.newsAPI.voteNews(
-						action,
-						id,
-						userId
-					)
-
-					return {
-						code: 200,
-						success: true,
-						message: response.message,
-						likes: response.likes,
-						dislikes: response.dislikes,
-					}
-				} else {
-					throw new UserInputError("Invalid action.")
-				}
-			} catch (error) {
-				return handleMutationError("voteNews", error)
-			}
-		},
 		updateCommentsCounter: async (
 			_,
 			{ action, id },
@@ -371,31 +301,10 @@ const resolvers = {
 					comments,
 				}
 			} catch (error) {
-				return handleMutationError("updateCommentsCounter", error)
-			}
-		},
-		saveNews: async (_, { action, id }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				if (action === "save" || action === "unsave") {
-					const response = await dataSources.newsAPI.saveNews(
-						action,
-						id,
-						userId
-					)
-
-					return {
-						code: response.code,
-						success: response.success,
-						message: response.message,
-					}
-				} else {
-					throw new UserInputError("Invalid action.")
+				return {
+					...handleMutationError("updateCommentsCounter", error),
+					comments: 0,
 				}
-			} catch (error) {
-				return handleMutationError("voteNews", error)
 			}
 		},
 	},
@@ -438,7 +347,8 @@ const resolvers = {
 		},
 		voteState: async ({ id }, _, { dataSources, userId }) => {
 			try {
-				if (userId) return dataSources.newsAPI.getVoteState(id, "news", userId)
+				if (userId)
+					return dataSources.commonAPI.getVoteState(id, "news", userId)
 
 				return "none"
 			} catch (error) {
@@ -447,7 +357,10 @@ const resolvers = {
 		},
 		saveState: async ({ id }, _, { dataSources, userId }) => {
 			try {
-				return dataSources.newsAPI.getSaveState(id, "news", userId)
+				if (userId)
+					return dataSources.commonAPI.getSaveState(id, "news", userId)
+
+				return "unsave"
 			} catch (error) {
 				return handleError("saveState", error)
 			}
