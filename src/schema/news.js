@@ -22,8 +22,6 @@ const typeDefs = gql`
 		newsForProfile(oldestId: ID!, id: ID!): [News!]
 		"Gets a news by id"
 		news(id: ID!): News!
-		"Gets the liked news by a user"
-		likedNews(oldestId: ID!): [News!]
 		"Gets the saved news by a user"
 		savedNews(oldestId: ID!): [News!]
 	}
@@ -111,7 +109,7 @@ const typeDefs = gql`
 		"The tags of the news, that help for better searching"
 		tags: String
 		"The body of the news"
-		body: String
+		body: String!
 		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site)"
 		type: String!
 		"The creation date of the news"
@@ -189,22 +187,6 @@ const resolvers = {
 				return news
 			} catch (error) {
 				return handleError("news", error)
-			}
-		},
-		likedNews: async (_, { oldestId }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				const news = await dataSources.newsAPI.getLikedNews(
-					oldestId,
-					userId,
-					dataToFetch
-				)
-
-				return news
-			} catch (error) {
-				return handleError("likedNews", error)
 			}
 		},
 		savedNews: async (_, { oldestId }, { dataSources, token, userId }) => {

@@ -10,6 +10,58 @@ class CommonAPI extends DataSource {
 		super()
 	}
 
+	// retrieve [dataToFetch] liked news based on an offset
+	async getLiked(oldestId, oldestType, userId, dataToFetch) {
+		try {
+			// get the oldest fetched like link
+			const oldestLike = await UserVote.findOne({
+				where: {
+					UserId: userId,
+					parentId: oldestId,
+					parentType: oldestType,
+				},
+			})
+
+			// add the additional options if there is an oldest items
+			const options = {}
+
+			if (oldestLike) {
+				options.createdAt = { [Op.lte]: oldestLike.createdAt }
+				options.id = { [Op.lt]: oldestLike.id }
+			}
+
+			options.type = "like"
+			options.UserId = userId
+
+			// retrieve all the ids of the liked items
+			const likedItemsIds = await UserVote.findAll({
+				limit: dataToFetch,
+				where: options,
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			})
+
+			// get all the items based on the ids
+			const items = await Promise.all(
+				likedItemsIds.map(async ({ parentId, parentType }) => {
+					if (parentType === "news") {
+						return News.findOne({ where: { id: parentId } })
+					}
+
+					if (parentType === "comment") {
+						return Comment.findOne({ where: { id: parentId } })
+					}
+				})
+			)
+
+			return items
+		} catch (error) {
+			return handleError("getLiked", error)
+		}
+	}
+
 	// vote a news or comment
 	async vote(action, parentId, parentType, userId) {
 		try {

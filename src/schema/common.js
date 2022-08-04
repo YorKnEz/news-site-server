@@ -8,6 +8,13 @@ const {
 const { dataToFetch, handleError, handleMutationError } = require("../utils")
 
 const typeDefs = gql`
+	union Item = News | Comment
+
+	type Query {
+		"Gets the liked news and comments by a user"
+		liked(oldestId: ID!, oldestType: String!): [Item!]
+	}
+
 	type Mutation {
 		"Toggle vote. Action can be either 'like' or 'dislike'"
 		vote(action: String!, parentId: ID!, parentType: String!): VoteResponse!
@@ -39,6 +46,29 @@ const typeDefs = gql`
 `
 
 const resolvers = {
+	Query: {
+		liked: async (
+			_,
+			{ oldestId, oldestType },
+			{ dataSources, token, userId }
+		) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				const items = await dataSources.commonAPI.getLiked(
+					oldestId,
+					oldestType,
+					userId,
+					dataToFetch
+				)
+
+				return items
+			} catch (error) {
+				return handleError("liked", error)
+			}
+		},
+	},
 	Mutation: {
 		vote: async (
 			_,
@@ -105,6 +135,17 @@ const resolvers = {
 			}
 		},
 	},
+	Item: {
+		__resolveType: async ({ title, replies }) => {
+			// only news have a title
+			if (title !== undefined) return "News"
+
+			// only comments have replies
+			if (replies !== undefined) return "Comment"
+
+			// throw an error
+			return null
+		},
 	},
 }
 
