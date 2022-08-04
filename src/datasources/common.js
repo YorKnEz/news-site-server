@@ -199,6 +199,57 @@ class CommonAPI extends DataSource {
 		}
 	}
 
+	// retrieve [dataToFetch] saved news based on an offset
+	async getSaved(oldestId, oldestType, userId, dataToFetch) {
+		try {
+			// get the oldest fetched save link
+			const oldestSave = await UserSave.findOne({
+				where: {
+					UserId: userId,
+					parentId: oldestId,
+					parentType: oldestType,
+				},
+			})
+
+			// add the additional options if there is an oldest news
+			const options = {}
+
+			if (oldestSave) {
+				options.createdAt = { [Op.lte]: oldestSave.createdAt }
+				options.id = { [Op.lt]: oldestSave.id }
+			}
+
+			options.UserId = userId
+
+			// retrieve all the ids of the liked news
+			const savedItemsIds = await UserSave.findAll({
+				limit: dataToFetch,
+				where: options,
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			})
+
+			// get all the news based on the ids
+			const items = await Promise.all(
+				savedItemsIds.map(async ({ parentId, parentType }) => {
+					if (parentType === "news") {
+						return News.findOne({ where: { id: parentId } })
+					}
+
+					if (parentType === "comment") {
+						return Comment.findOne({ where: { id: parentId } })
+					}
+				})
+			)
+
+			return items
+		} catch (error) {
+			return handleError("getSaved")
+		}
+	}
+
 	// save a news or comment
 	async save(action, parentId, parentType, userId) {
 		try {

@@ -88,54 +88,6 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// retrieve [dataToFetch] saved news based on an offset
-	async getSavedNews(oldestId, userId, dataToFetch) {
-		try {
-			// get the oldest fetched save link
-			const oldestSave = await UserSave.findOne({
-				where: {
-					UserId: userId,
-					parentId: oldestId,
-					parentType: "news",
-				},
-			})
-
-			// add the additional options if there is an oldest news
-			const options = {}
-
-			if (oldestSave) {
-				options.createdAt = { [Op.lte]: oldestSave.createdAt }
-				options.id = { [Op.lt]: oldestSave.id }
-			}
-
-			options.parentType = "news"
-			options.UserId = userId
-
-			// retrieve all the ids of the liked news
-			const savedNewsIds = await UserSave.findAll({
-				limit: dataToFetch,
-				where: options,
-				order: [
-					["createdAt", "DESC"],
-					["id", "DESC"],
-				],
-			})
-
-			// get all the news based on the ids
-			const news = await Promise.all(
-				savedNewsIds.map(async ({ parentId }) => {
-					const newsById = await News.findOne({ where: { id: parentId } })
-
-					return newsById
-				})
-			)
-
-			return news
-		} catch (error) {
-			return handleError("getSavedNews")
-		}
-	}
-
 	// retrieve one news with the id passed
 	async getNewsById(newsId) {
 		try {

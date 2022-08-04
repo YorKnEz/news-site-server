@@ -13,6 +13,8 @@ const typeDefs = gql`
 	type Query {
 		"Gets the liked news and comments by a user"
 		liked(oldestId: ID!, oldestType: String!): [Item!]
+		"Gets the saved news and comments by a user"
+		saved(oldestId: ID!, oldestType: String!): [Item!]
 	}
 
 	type Mutation {
@@ -66,6 +68,27 @@ const resolvers = {
 				return items
 			} catch (error) {
 				return handleError("liked", error)
+			}
+		},
+		saved: async (
+			_,
+			{ oldestId, oldestType },
+			{ dataSources, token, userId }
+		) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				const news = await dataSources.commonAPI.getSaved(
+					oldestId,
+					oldestType,
+					userId,
+					dataToFetch
+				)
+
+				return news
+			} catch (error) {
+				return handleError("saved", error)
 			}
 		},
 	},
