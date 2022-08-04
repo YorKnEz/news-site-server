@@ -80,20 +80,52 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// retrieve one news with the id passed
-	async getNewsById(newsId) {
+	// retrieve [dataToFetch] liked news based on an offset
+	async getLikedNews(oldestId, userId, dataToFetch) {
 		try {
-			const news = await News.findOne({
+			// get the oldest fetched like link
+			const oldestLike = await UserVote.findOne({
 				where: {
-					id: newsId,
+					UserId: userId,
+					parentId: oldestId,
+					parentType: "news",
 				},
 			})
 
-			if (!news) throw "News not in our database"
+			// add the additional options if there is an oldest news
+			const options = {}
+
+			if (oldestLike) {
+				options.createdAt = { [Op.lte]: oldestLike.createdAt }
+				options.id = { [Op.lt]: oldestLike.id }
+			}
+
+			options.parentType = "news"
+			options.type = "like"
+			options.UserId = userId
+
+			// retrieve all the ids of the liked news
+			const likedNewsIds = await UserVote.findAll({
+				limit: dataToFetch,
+				where: options,
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			})
+
+			// get all the news based on the ids
+			const news = await Promise.all(
+				likedNewsIds.map(async ({ parentId }) => {
+					const newsById = await News.findOne({ where: { id: parentId } })
+
+					return newsById
+				})
+			)
 
 			return news
 		} catch (error) {
-			return handleError("getNewsById", error)
+			return handleError("getLikedNews", error)
 		}
 	}
 

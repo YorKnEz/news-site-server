@@ -23,7 +23,7 @@ const typeDefs = gql`
 		"Gets a news by id"
 		news(id: ID!): News!
 		"Gets the liked news by a user"
-		likedNews(offset: Int): [News!]
+		likedNews(oldestId: ID!): [News!]
 	}
 
 	type Mutation {
@@ -217,13 +217,13 @@ const resolvers = {
 				return handleError("news", error)
 			}
 		},
-		likedNews: async (_, { offset }, { dataSources, token, userId }) => {
+		likedNews: async (_, { oldestId }, { dataSources, token, userId }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				const news = await dataSources.newsAPI.getLikedNews(
-					offset,
+					oldestId,
 					userId,
 					dataToFetch
 				)
