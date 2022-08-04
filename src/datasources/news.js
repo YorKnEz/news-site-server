@@ -129,32 +129,31 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	// retrieve [newsToFetch] news of a certain author basend on the oldest fetched author id
-	async getAuthorNews(oldestId, id, dataToFetch) {
+	// retrieve [dataToFetch] saved news based on an offset
+	async getSavedNews(oldestId, userId, dataToFetch) {
 		try {
-			const author = await User.findOne({
+			// get the oldest fetched save link
+			const oldestSave = await UserSave.findOne({
 				where: {
-					id,
+					UserId: userId,
+					parentId: oldestId,
+					parentType: "news",
 				},
-			})
-
-			// find the oldest news
-			const oldestNews = await News.findOne({
-				where: { id: oldestId },
 			})
 
 			// add the additional options if there is an oldest news
 			const options = {}
 
-			if (oldestNews) {
-				options.createdAt = { [Op.lte]: oldestNews.createdAt }
-				options.id = { [Op.lt]: oldestId }
+			if (oldestSave) {
+				options.createdAt = { [Op.lte]: oldestSave.createdAt }
+				options.id = { [Op.lt]: oldestSave.id }
 			}
 
-			options.type = "created"
-			options.authorId = author.id
+			options.parentType = "news"
+			options.UserId = userId
 
-			const news = await News.findAll({
+			// retrieve all the ids of the liked news
+			const savedNewsIds = await UserSave.findAll({
 				limit: dataToFetch,
 				where: options,
 				order: [
@@ -163,9 +162,20 @@ class NewsAPI extends DataSource {
 				],
 			})
 
+			// get all the news based on the ids
+			const news = await Promise.all(
+				savedNewsIds.map(async ({ parentId }) => {
+					const newsById = await News.findOne({ where: { id: parentId } })
+
+					return newsById
+				})
+			)
+
 			return news
 		} catch (error) {
-			return handleError("getAuthorNews", error)
+			return handleError("getSavedNews")
+		}
+	}
 		}
 	}
 
