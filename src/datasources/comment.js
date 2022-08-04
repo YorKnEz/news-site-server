@@ -2,7 +2,7 @@ const { DataSource } = require("apollo-datasource")
 const { UserInputError } = require("apollo-server")
 const { Op } = require("sequelize")
 
-const { Comment, News, UserVote } = require("../database")
+const { Comment, News, UserVote, UserSave } = require("../database")
 const comment = require("../schema/comment")
 const { handleError } = require("../utils")
 
@@ -265,6 +265,52 @@ class CommentAPI extends DataSource {
 			return comment.replies
 		} catch (error) {
 			return handleError("updateRepliesCounter", error)
+		}
+	}
+
+	async saveComment(action, commentId, userId) {
+		try {
+			// try to find if the comment has already been saved
+			const link = await UserSave.findOne({
+				where: {
+					parentId: commentId,
+					parentType: "comment",
+					UserId: userId,
+				},
+			})
+
+			// if the comment hasn't been saved but the action is "save", save it
+			if (!link && action === "save") {
+				await UserSave.create({
+					parentId: commentId,
+					parentType: "comment",
+					UserId: userId,
+				})
+
+				return {
+					code: 200,
+					success: true,
+					message: "Comment saved successfully",
+				}
+			}
+
+			if (link && action === "unsave") {
+				await link.destroy()
+
+				return {
+					code: 200,
+					success: true,
+					message: "Comment unsaved successfully",
+				}
+			}
+
+			return {
+				code: 400,
+				success: false,
+				message: "Invalid action",
+			}
+		} catch (error) {
+			return handleError("saveComment", error)
 		}
 	}
 }
