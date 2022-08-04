@@ -239,7 +239,11 @@ const resolvers = {
 					throw new UserInputError("Invalid action.")
 				}
 			} catch (error) {
-				return handleMutationError("voteNews", error)
+				return {
+					...handleMutationError("voteNews", error),
+					likes: 0,
+					dislikes: 0,
+				}
 			}
 		},
 		updateRepliesCounter: async (_, { action, id }, { dataSources, token }) => {
@@ -256,7 +260,10 @@ const resolvers = {
 					replies,
 				}
 			} catch (error) {
-				return handleMutationError("updateRepliesCounter", error)
+				return {
+					...handleMutationError("updateRepliesCounter", error),
+					replies: 0,
+				}
 			}
 		},
 	},

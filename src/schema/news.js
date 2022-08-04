@@ -67,7 +67,7 @@ const typeDefs = gql`
 		"Human-readable message for the UI"
 		message: String!
 		"The id of the news that has been created"
-		id: ID
+		id: ID!
 	}
 
 	type UpdateNewsResponse {
@@ -261,7 +261,10 @@ const resolvers = {
 					id: newsId,
 				}
 			} catch (error) {
-				return handleMutationError("createNews", error)
+				return {
+					...handleMutationError("createNews", error),
+					id: 0,
+				}
 			}
 		},
 		updateNews: async (
@@ -292,7 +295,6 @@ const resolvers = {
 					code: 200,
 					success: true,
 					message: "The news has been successfully updated",
-					news: updatedNews,
 				}
 			} catch (error) {
 				return handleMutationError("updateNews", error)
@@ -350,7 +352,11 @@ const resolvers = {
 					throw new UserInputError("Invalid action.")
 				}
 			} catch (error) {
-				return handleMutationError("voteNews", error)
+				return {
+					...handleMutationError("voteNews", error),
+					likes: 0,
+					dislikes: 0,
+				}
 			}
 		},
 		updateCommentsCounter: async (
@@ -371,7 +377,10 @@ const resolvers = {
 					comments,
 				}
 			} catch (error) {
-				return handleMutationError("updateCommentsCounter", error)
+				return {
+					...handleMutationError("updateCommentsCounter", error),
+					comments: 0,
+				}
 			}
 		},
 		saveNews: async (_, { action, id }, { dataSources, token, userId }) => {
@@ -447,7 +456,9 @@ const resolvers = {
 		},
 		saveState: async ({ id }, _, { dataSources, userId }) => {
 			try {
-				return dataSources.newsAPI.getSaveState(id, "news", userId)
+				if (userId) return dataSources.newsAPI.getSaveState(id, "news", userId)
+
+				return "unsave"
 			} catch (error) {
 				return handleError("saveState", error)
 			}
