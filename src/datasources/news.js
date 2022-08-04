@@ -27,7 +27,6 @@ class NewsAPI extends DataSource {
 
 			if (oldestNews) {
 				options.createdAt = { [Op.lte]: oldestNews.createdAt }
-
 				options.id = { [Op.lt]: oldestId }
 			}
 
@@ -113,22 +112,19 @@ class NewsAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest news
-			const options = oldestNews && {
-				createdAt: {
-					[Op.lte]: oldestNews.createdAt,
-				},
-				id: {
-					[Op.lt]: oldestId,
-				},
-				type,
+			const options = {}
+
+			if (oldestNews) {
+				options.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.id = { [Op.lt]: oldestId }
 			}
+
+			options.type = "created"
+			options.authorId = author.id
 
 			const news = await News.findAll({
 				limit: dataToFetch,
-				where: {
-					...options,
-					authorId: author.id,
-				},
+				where: options,
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
