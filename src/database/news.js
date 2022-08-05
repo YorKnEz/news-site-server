@@ -67,6 +67,12 @@ const News = sequelize.define("News", {
 		allowNull: false,
 		defaultValue: 0,
 	},
+	// the score of the post is likes - dislikes
+	score: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+		defaultValue: 0,
+	},
 	// number of comments
 	comments: {
 		type: DataTypes.INTEGER,

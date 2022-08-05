@@ -39,6 +39,12 @@ const Comment = sequelize.define("Comment", {
 		allowNull: false,
 		defaultValue: 0,
 	},
+	// the score of the post is likes - dislikes
+	score: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+		defaultValue: 0,
+	},
 	// replies counter
 	replies: {
 		type: DataTypes.INTEGER,

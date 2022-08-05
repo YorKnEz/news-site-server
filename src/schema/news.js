@@ -120,6 +120,8 @@ const typeDefs = gql`
 		likes: Int!
 		"The number of dislikes the post has"
 		dislikes: Int!
+		"The score of the news. The score is the difference between likes and dislikes."
+		score: Int!
 		"The number of comments"
 		comments: Int
 		"Wether the news has been saved or not. Can be either 'save', 'unsave'"
