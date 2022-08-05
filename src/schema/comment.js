@@ -25,6 +25,7 @@ const typeDefs = gql`
 	}
 
 	input CommentInput {
+		newsId: ID!
 		parentId: ID!
 		parentType: String!
 		body: String!
@@ -68,6 +69,8 @@ const typeDefs = gql`
 		likes: Int!
 		"The number of dislikes of the comment"
 		dislikes: Int!
+		"The score of the news. The score is the difference between likes and dislikes."
+		score: Int!
 		"The date when the comment was created"
 		createdAt: String!
 		"The number of replies"

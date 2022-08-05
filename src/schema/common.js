@@ -31,10 +31,8 @@ const typeDefs = gql`
 		success: Boolean!
 		"Human-readable message for the UI"
 		message: String!
-		"Updated number of likes"
-		likes: Int!
-		"Updated number of dislikes"
-		dislikes: Int!
+		"The new score of the item"
+		score: Int!
 	}
 
 	type SaveResponse {
@@ -114,8 +112,7 @@ const resolvers = {
 						code: 200,
 						success: true,
 						message: response.message,
-						likes: response.likes,
-						dislikes: response.dislikes,
+						score: response.score,
 					}
 				} else {
 					throw new UserInputError("Invalid action.")

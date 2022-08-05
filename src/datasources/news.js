@@ -15,7 +15,7 @@ class NewsAPI extends DataSource {
 	}
 	// retrieve [newsToFetch] news based on the oldest fetched news id
 
-	async getNews(oldestId, dataToFetch) {
+	async getNewsByDate(oldestId, dataToFetch) {
 		try {
 			// find the oldest news
 			const oldestNews = await News.findOne({
@@ -44,7 +44,65 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			return handleError("getNews", error)
+			return handleError("getNewsByDate", error)
+		}
+	}
+
+	async getNewsByScore(oldestId, dataToFetch) {
+		try {
+			// find the oldest news
+			const oldestNews = await News.findOne({
+				where: { id: oldestId },
+			})
+
+			// add the additional options if there is an oldest news
+			let options = {}
+
+			if (oldestNews) {
+				options.score = { [Op.eq]: oldestNews.score }
+				options.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.id = { [Op.not]: oldestNews.id }
+			}
+
+			options.type = "created"
+
+			const news = await News.findAll({
+				limit: dataToFetch,
+				where: options,
+				order: [
+					["score", "DESC"],
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			})
+
+			if (news.length < dataToFetch) {
+				const dataToFetch2 = dataToFetch - news.length
+
+				options = {}
+
+				if (oldestNews) {
+					options.score = { [Op.lt]: oldestNews.score }
+				}
+
+				options.type = "created"
+
+				const news2 = await News.findAll({
+					limit: dataToFetch2,
+					where: options,
+					order: [
+						["score", "DESC"],
+						["createdAt", "DESC"],
+						["id", "DESC"],
+					],
+				})
+
+				return [...news, ...news2]
+			}
+
+			return news
+		} catch (error) {
+			return handleError("getNewsByScore", error)
 		}
 	}
 
@@ -369,12 +427,14 @@ class NewsAPI extends DataSource {
 			if (news.authorId != userId)
 				throw new ForbiddenError("You are not the author of this news.")
 
-			const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
+			if (news.thumbnail) {
+				const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
 
-			// delete the thumbnail from the server
-			fs.unlink(`./public/${thumbnail}`, err => {
-				if (err) console.log(err)
-			})
+				// delete the thumbnail from the server
+				fs.unlink(`./public/${thumbnail}`, err => {
+					if (err) console.log(err)
+				})
+			}
 
 			// delete the news
 			await news.destroy()

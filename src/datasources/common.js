@@ -169,10 +169,16 @@ class CommonAPI extends DataSource {
 			// save changes
 			await parent.save()
 
+			// update the score
+			await parent.update({
+				score: parent.likes - parent.dislikes,
+			})
+
+			await parent.save()
+
 			return {
 				message: options[action].message2,
-				likes: parent.likes,
-				dislikes: parent.dislikes,
+				score: parent.score,
 			}
 		} catch (error) {
 			return handleError("vote", error)
