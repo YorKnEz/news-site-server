@@ -25,6 +25,7 @@ const typeDefs = gql`
 	}
 
 	input CommentInput {
+		newsId: ID!
 		parentId: ID!
 		parentType: String!
 		body: String!

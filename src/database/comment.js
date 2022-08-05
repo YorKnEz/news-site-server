@@ -9,6 +9,11 @@ const Comment = sequelize.define("Comment", {
 		allowNull: false,
 		defaultValue: DataTypes.NOW,
 	},
+	// the news this comment belongs to
+	newsId: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+	},
 	// id of the parent of the comment (either a news or another comment if it's a reply)
 	parentId: {
 		type: DataTypes.INTEGER,

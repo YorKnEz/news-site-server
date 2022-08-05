@@ -82,9 +82,10 @@ class CommentAPI extends DataSource {
 			const comment = await Comment.findOne({
 				where: {
 					id: commentId,
-					UserId: userId,
+					newsId: commentData.newsId,
 					parentId: commentData.parentId,
 					parentType: commentData.parentType,
+					UserId: userId,
 				},
 			})
 
