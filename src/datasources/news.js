@@ -369,12 +369,14 @@ class NewsAPI extends DataSource {
 			if (news.authorId != userId)
 				throw new ForbiddenError("You are not the author of this news.")
 
-			const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
+			if (news.thumbnail) {
+				const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
 
-			// delete the thumbnail from the server
-			fs.unlink(`./public/${thumbnail}`, err => {
-				if (err) console.log(err)
-			})
+				// delete the thumbnail from the server
+				fs.unlink(`./public/${thumbnail}`, err => {
+					if (err) console.log(err)
+				})
+			}
 
 			// delete the news
 			await news.destroy()
