@@ -134,11 +134,13 @@ const resolvers = {
 		// returns an array of news created on the site that will be used to populate the homepage
 		newsForHome: async (_, { oldestId, sortBy }, { dataSources }) => {
 			try {
-				if (sortBy === "date")
+				if (sortBy === "date") {
 					return dataSources.newsAPI.getNewsByDate(oldestId, dataToFetch)
+				}
 
-				if (sortBy === "score")
+				if (sortBy === "score") {
 					return dataSources.newsAPI.getNewsByScore(oldestId, dataToFetch)
+				}
 
 				return null
 			} catch (error) {
