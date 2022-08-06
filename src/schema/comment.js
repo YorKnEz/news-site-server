@@ -5,9 +5,9 @@ const { dataToFetch, handleError, handleMutationError } = require("../utils")
 const typeDefs = gql`
 	type Query {
 		"Gets comments of a certain post"
-		commentsForNews(oldestCommentDate: String!, newsId: ID!): [Comment!]
+		commentsForNews(oldestId: ID!, newsId: ID!, sortBy: String!): [Comment!]
 		"Gets replies of a certain comment"
-		commentReplies(oldestCommentDate: String!, commentId: ID!): [Comment!]
+		commentReplies(oldestId: ID!, commentId: ID!, sortBy: String!): [Comment!]
 	}
 
 	type Mutation {
@@ -84,36 +84,58 @@ const resolvers = {
 	Query: {
 		commentsForNews: async (
 			_,
-			{ newsId, oldestCommentDate },
+			{ newsId, oldestId, sortBy },
 			{ dataSources }
 		) => {
 			try {
-				const comments = await dataSources.commentAPI.getComments(
-					oldestCommentDate,
-					newsId,
-					"news",
-					dataToFetch
-				)
+				if (sortBy === "date") {
+					return dataSources.commentAPI.getCommentsByDate(
+						oldestId,
+						newsId,
+						"news",
+						dataToFetch
+					)
+				}
 
-				return comments
+				if (sortBy === "score") {
+					return dataSources.commentAPI.getCommentsByScore(
+						oldestId,
+						newsId,
+						"news",
+						dataToFetch
+					)
+				}
+
+				return null
 			} catch (error) {
 				return handleError("commentForNews", error)
 			}
 		},
 		commentReplies: async (
 			_,
-			{ commentId, oldestCommentDate },
+			{ commentId, oldestId, sortBy },
 			{ dataSources }
 		) => {
 			try {
-				const comments = await dataSources.commentAPI.getComments(
-					oldestCommentDate,
-					commentId,
-					"comment",
-					dataToFetch
-				)
+				if (sortBy === "date") {
+					return dataSources.commentAPI.getCommentsByDate(
+						oldestId,
+						commentId,
+						"comment",
+						dataToFetch
+					)
+				}
 
-				return comments
+				if (sortBy === "score") {
+					return dataSources.commentAPI.getCommentsByScore(
+						oldestId,
+						commentId,
+						"comment",
+						dataToFetch
+					)
+				}
+
+				return null
 			} catch (error) {
 				return handleError("commentReplies", error)
 			}

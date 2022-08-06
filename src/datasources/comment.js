@@ -11,18 +11,28 @@ class CommentAPI extends DataSource {
 	}
 
 	// gets the comments of news or other comments
-	async getComments(oldestCommentDate, parentId, parentType, dataToFetch) {
+	async getCommentsByDate(oldestId, parentId, parentType, dataToFetch) {
 		try {
-			// get the comments
+			// find the oldest comment
+			const oldestComm = await Comment.findOne({
+				where: { id: oldestId, parentId, parentType },
+			})
+
+			// add the additional options if there is an oldest news
+			const options = {}
+
+			if (oldestComm) {
+				options.createdAt = { [Op.lte]: oldestComm.createdAt }
+				options.id = { [Op.lt]: oldestId }
+			}
+
+			options.parentId = parentId
+			options.parentType = parentType
+
+			// get the news
 			const comments = await Comment.findAll({
 				limit: dataToFetch,
-				where: {
-					parentId,
-					parentType,
-					createdAt: {
-						[Op.lt]: new Date(parseInt(oldestCommentDate)).getTime(),
-					},
-				},
+				where: options,
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
@@ -31,7 +41,80 @@ class CommentAPI extends DataSource {
 
 			return comments
 		} catch (error) {
-			return handleError("getComments", error)
+			return handleError("getCommentsByDate", error)
+		}
+	}
+
+	async getCommentsByScore(oldestId, parentId, parentType, dataToFetch) {
+		try {
+			console.log(oldestId, parentId, parentType, dataToFetch)
+
+			// find the oldest comment
+			const oldestComm = await Comment.findOne({
+				where: { id: oldestId },
+			})
+
+			// add the additional options if there is an oldest comment
+			let options = {}
+
+			if (oldestComm) {
+				options.score = { [Op.eq]: oldestComm.score }
+				options.createdAt = { [Op.lte]: oldestComm.createdAt }
+				options.id = { [Op.not]: oldestComm.id }
+			}
+
+			options.parentId = parentId
+			options.parentType = parentType
+
+			const comments = await Comment.findAll({
+				limit: dataToFetch,
+				where: options,
+				order: [
+					["score", "DESC"],
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			})
+
+			if (comments.length < dataToFetch) {
+				const dataToFetch2 = dataToFetch - comments.length
+
+				options = {}
+
+				if (oldestComm) {
+					options.score = { [Op.lt]: oldestComm.score }
+				}
+
+				options.parentId = parentId
+				options.parentType = parentType
+
+				const comments2 = await Comment.findAll({
+					limit: dataToFetch2,
+					where: options,
+					order: [
+						["score", "DESC"],
+						["createdAt", "DESC"],
+						["id", "DESC"],
+					],
+				})
+
+				comments.forEach(c =>
+					console.log(c.id, c.score, c.createdAt, c.parentType)
+				)
+				comments2.forEach(c =>
+					console.log(c.id, c.score, c.createdAt, c.parentType)
+				)
+
+				return [...comments, ...comments2]
+			}
+
+			comments.forEach(c =>
+				console.log(c.id, c.score, c.createdAt, c.parentType)
+			)
+
+			return comments
+		} catch (error) {
+			return handleError("getCommentsByScore", error)
 		}
 	}
 
