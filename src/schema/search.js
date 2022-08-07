@@ -1,18 +1,23 @@
 const { gql } = require("apollo-server")
 
 const typeDefs = gql`
+	union Result = NewsSearch | AuthorSearch
+
 	type Query {
 		"Gets all matching authors or news matching a search string"
-		search(search: String!, filter: String!): [SearchResult!]
+		search(search: String!, filter: String!): [Result!]
 	}
 
-	type SearchResult {
+	type NewsSearch {
 		"How much the news matches the searching query"
 		matches: Int
-		"The news Object. Required if the filter type is title, body or tags"
-		news: News
-		"The authors Object. Required if the filter type is author"
-		author: Author
+		"The search result."
+		result: News
+	}
+
+	type AuthorSearch {
+		"The search result."
+		result: Author
 	}
 `
 
@@ -25,27 +30,29 @@ const resolvers = {
 
 				switch (filter) {
 					case "title":
-						const newsTitle = await dataSources.newsAPI.searchNewsByTitle(
-							search
-						)
-
-						return newsTitle
+						return dataSources.newsAPI.searchNewsByTitle(search)
 					case "body":
-						const newsBody = await dataSources.newsAPI.searchNewsByBody(search)
-
-						return newsBody
+						return dataSources.newsAPI.searchNewsByBody(search)
 					case "author":
-						const authors = await dataSources.userAPI.searchAuthors(search)
-
-						return authors
+						return dataSources.userAPI.searchAuthors(search)
 					case "tags":
-						const newsTags = await dataSources.newsAPI.searchNewsByTags(search)
-
-						return newsTags
+						return dataSources.newsAPI.searchNewsByTags(search)
 				}
 			} catch (error) {
 				return handleError("search", error)
 			}
+		},
+	},
+	Result: {
+		__resolveType: async ({ result }) => {
+			// only news have a title
+			if (result?.title) return "NewsSearch"
+
+			// only auhtors have a full name
+			if (result?.fullName) return "AuthorSearch"
+
+			// throw an error
+			return null
 		},
 	},
 }

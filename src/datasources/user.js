@@ -68,7 +68,7 @@ class UserAPI extends DataSource {
 			})
 
 			return authors.map(author => ({
-				author,
+				result: author,
 			}))
 		} catch (error) {
 			return handleError("searchAuthors", error)
