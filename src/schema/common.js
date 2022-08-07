@@ -77,14 +77,14 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const news = await dataSources.commonAPI.getSaved(
+				const items = await dataSources.commonAPI.getSaved(
 					oldestId,
 					oldestType,
 					userId,
 					dataToFetch
 				)
 
-				return news
+				return items
 			} catch (error) {
 				return handleError("saved", error)
 			}

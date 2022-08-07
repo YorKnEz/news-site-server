@@ -3,7 +3,7 @@ const { ForbiddenError, UserInputError } = require("apollo-server")
 const fs = require("fs")
 const { Op } = require("sequelize")
 
-const { News, User, UserVote, UserSave } = require("../database")
+const { News, User } = require("../database")
 const { formatTitle, handleError } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
@@ -221,7 +221,7 @@ class NewsAPI extends DataSource {
 							results[data.id].matches += 1
 						} else {
 							results[data.id] = {
-								news: data.toJSON(),
+								result: data,
 								matches: 1,
 							}
 						}
@@ -262,7 +262,7 @@ class NewsAPI extends DataSource {
 			})
 
 			return news.map(n => ({
-				news: n.toJSON(),
+				news: n,
 			}))
 		} catch (error) {
 			return handleError("searchNewsByBody", error)
@@ -290,7 +290,7 @@ class NewsAPI extends DataSource {
 							results[data.id].matches += 1
 						} else {
 							results[data.id] = {
-								news: data.toJSON(),
+								result: data,
 								matches: 1,
 							}
 						}
