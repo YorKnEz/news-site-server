@@ -437,7 +437,14 @@ class NewsAPI extends DataSource {
 			}
 
 			// delete the news
-			await news.destroy()
+			await news.update({
+				title: "[deleted]",
+				authorId: "-1",
+				sources: "[deleted]",
+				tags: "[deleted]",
+				body: "<p>[deleted]</p>",
+				type: "[deleted]",
+			})
 
 			// update the number of written news of the user
 			await user.update({

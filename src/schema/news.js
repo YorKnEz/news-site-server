@@ -346,6 +346,12 @@ const resolvers = {
 						}
 
 						break
+					case "[deleted]":
+						returnData = {
+							id: "[deleted]",
+							fullName: "[deleted]",
+							profilePicture: "default",
+						}
 				}
 
 				return returnData
