@@ -4,7 +4,7 @@ const fs = require("fs")
 const { Op } = require("sequelize")
 
 const { News, User } = require("../database")
-const { formatTitle, handleError } = require("../utils")
+const { formatTitle, GenericError } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
 const ip = process.env.EXPRESS_SERVER_IP
@@ -44,7 +44,7 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			return handleError("getNewsByDate", error)
+			throw new GenericError("getNewsByDate", error)
 		}
 	}
 
@@ -102,7 +102,7 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			return handleError("getNewsByScore", error)
+			throw new GenericError("getNewsByScore", error)
 		}
 	}
 
@@ -142,7 +142,7 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			return handleError("getAuthorNews", error)
+			throw new GenericError("getAuthorNews", error)
 		}
 	}
 
@@ -159,7 +159,7 @@ class NewsAPI extends DataSource {
 
 			return news
 		} catch (error) {
-			return handleError("getNewsById", error)
+			throw new GenericError("getNewsById", error)
 		}
 	}
 
@@ -196,7 +196,7 @@ class NewsAPI extends DataSource {
 
 			return Promise.all(news)
 		} catch (error) {
-			return handleError("addNewsFromReddit", error)
+			throw new GenericError("addNewsFromReddit", error)
 		}
 	}
 
@@ -248,7 +248,7 @@ class NewsAPI extends DataSource {
 
 			return results
 		} catch (error) {
-			return handleError("searchNewsByTitle", error)
+			throw new GenericError("searchNewsByTitle", error)
 		}
 	}
 
@@ -265,7 +265,7 @@ class NewsAPI extends DataSource {
 				news: n,
 			}))
 		} catch (error) {
-			return handleError("searchNewsByBody", error)
+			throw new GenericError("searchNewsByBody", error)
 		}
 	}
 
@@ -317,7 +317,7 @@ class NewsAPI extends DataSource {
 
 			return results
 		} catch (error) {
-			return handleError("searchNewsByTags", error)
+			throw new GenericError("searchNewsByTags", error)
 		}
 	}
 
@@ -352,7 +352,7 @@ class NewsAPI extends DataSource {
 			// return the id of the news
 			return news.id
 		} catch (error) {
-			return handleError("createNews", error)
+			throw new GenericError("createNews", error)
 		}
 	}
 
@@ -402,7 +402,7 @@ class NewsAPI extends DataSource {
 			// return the updated news
 			return news
 		} catch (error) {
-			return handleError("updateNews", error)
+			throw new GenericError("updateNews", error)
 		}
 	}
 
@@ -454,7 +454,7 @@ class NewsAPI extends DataSource {
 			// save the changes
 			await user.save()
 		} catch (error) {
-			return handleError("deleteNews", error)
+			throw new GenericError("deleteNews", error)
 		}
 	}
 
@@ -477,7 +477,7 @@ class NewsAPI extends DataSource {
 
 			return news.comments
 		} catch (error) {
-			return handleError("updateCommentsCounter", error)
+			throw new GenericError("updateCommentsCounter", error)
 		}
 	}
 }

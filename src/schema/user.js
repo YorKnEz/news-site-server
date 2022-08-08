@@ -1,6 +1,6 @@
 const { gql, AuthenticationError, UserInputError } = require("apollo-server")
 
-const { dataToFetch, handleError, handleMutationError } = require("../utils")
+const { dataToFetch, GenericError } = require("../utils")
 
 const typeDefs = gql`
 	type Query {
@@ -58,7 +58,7 @@ const resolvers = {
 					...author.toJSON(),
 				}
 			} catch (error) {
-				return handleError("author", error)
+				throw new GenericError("author", error)
 			}
 		},
 		followedAuthors: async (_, { offset }, { dataSources, token, userId }) => {
@@ -74,7 +74,7 @@ const resolvers = {
 
 				return authors
 			} catch (error) {
-				return handleError("followedAuthors", error)
+				throw new GenericError("followedAuthors", error)
 			}
 		},
 	},
@@ -88,7 +88,7 @@ const resolvers = {
 
 				return result
 			} catch (error) {
-				return handleError("following", error)
+				throw new GenericError("following", error)
 			}
 		},
 	},

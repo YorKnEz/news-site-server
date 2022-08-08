@@ -27,16 +27,6 @@ const formatTitle = title => {
 	return title
 }
 
-const handleError = (location, error) => {
-	if (error.status && error.message) {
-		console.log(`Error ${error.status} in ${location}: ${error.message}`)
-	} else {
-		console.log(`Error in ${location}: ${error}`)
-	}
-
-	return error
-}
-
 const handleMutationError = (location, error) => {
 	if (error.status && error.message) {
 		console.log(`Error ${error.status} in ${location}: ${error.message}`)
@@ -81,7 +71,6 @@ module.exports = {
 	dataToFetch,
 	evaluateImageLink,
 	formatTitle,
-	handleError,
 	handleMutationError,
 	GenericError,
 }

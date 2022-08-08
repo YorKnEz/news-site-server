@@ -1,4 +1,5 @@
 const { gql } = require("apollo-server")
+const { GenericError } = require("../utils")
 
 const typeDefs = gql`
 	union Result = NewsSearch | AuthorSearch
@@ -39,7 +40,7 @@ const resolvers = {
 						return dataSources.newsAPI.searchNewsByTags(search)
 				}
 			} catch (error) {
-				return handleError("search", error)
+				throw new GenericError("search", error)
 			}
 		},
 	},

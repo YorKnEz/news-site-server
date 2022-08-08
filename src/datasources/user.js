@@ -2,7 +2,7 @@ const { DataSource } = require("apollo-datasource")
 const { Op } = require("sequelize")
 
 const { User, UserFollow } = require("../database")
-const { handleError } = require("../utils")
+const { GenericError } = require("../utils")
 
 class UserAPI extends DataSource {
 	constructor() {
@@ -28,7 +28,7 @@ class UserAPI extends DataSource {
 
 			return author
 		} catch (error) {
-			return handleError("getAuthorById", error)
+			throw new GenericError("getAuthorById", error)
 		}
 	}
 
@@ -49,7 +49,7 @@ class UserAPI extends DataSource {
 
 			return user
 		} catch (error) {
-			return handleError("getAuthorById", error)
+			throw new GenericError("getAuthorById", error)
 		}
 	}
 
@@ -71,7 +71,7 @@ class UserAPI extends DataSource {
 				result: author,
 			}))
 		} catch (error) {
-			return handleError("searchAuthors", error)
+			throw new GenericError("searchAuthors", error)
 		}
 	}
 
@@ -102,7 +102,7 @@ class UserAPI extends DataSource {
 
 			return authors
 		} catch (error) {
-			return handleError("getFollowedAuthors", error)
+			throw new GenericError("getFollowedAuthors", error)
 		}
 	}
 }

@@ -1,7 +1,7 @@
 const { DataSource } = require("apollo-datasource")
 
 const { UserFollow } = require("../database")
-const { handleError } = require("../utils")
+const { GenericError } = require("../utils")
 
 class UserFollowAPI extends DataSource {
 	constructor() {
@@ -22,7 +22,7 @@ class UserFollowAPI extends DataSource {
 
 			return false
 		} catch (error) {
-			handleError("isFollowing", error)
+			throw new GenericError("isFollowing", error)
 		}
 	}
 }
