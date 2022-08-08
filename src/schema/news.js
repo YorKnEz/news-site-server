@@ -126,6 +126,8 @@ const typeDefs = gql`
 		comments: Int
 		"Wether the news has been saved or not. Can be either 'save', 'unsave'"
 		saveState: String!
+		"The link of the news, formatted."
+		link: String!
 	}
 `
 
