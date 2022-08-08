@@ -8,8 +8,8 @@ const {
 const {
 	dataToFetch,
 	evaluateImageLink,
-	handleError,
 	handleMutationError,
+	GenericError,
 } = require("../utils")
 
 const typeDefs = gql`
@@ -35,7 +35,7 @@ const typeDefs = gql`
 		updateCommentsCounter(
 			action: String!
 			id: ID!
-		): UpdateCommentsCounterResposne!
+		): UpdateCommentsCounterResponse!
 	}
 
 	input NewsInput {
@@ -80,7 +80,7 @@ const typeDefs = gql`
 		message: String!
 	}
 
-	type UpdateCommentsCounterResposne {
+	type UpdateCommentsCounterResponse {
 		"Similar to HTTP status code, represents the status of the mutation"
 		code: Int!
 		"Indicated whether the mutation was successful"
@@ -126,6 +126,8 @@ const typeDefs = gql`
 		comments: Int
 		"Wether the news has been saved or not. Can be either 'save', 'unsave'"
 		saveState: String!
+		"The link of the news, formatted."
+		link: String!
 	}
 `
 
@@ -144,7 +146,7 @@ const resolvers = {
 
 				return null
 			} catch (error) {
-				return handleError("newsForHome", error)
+				throw new GenericError("newsForHome", error)
 			}
 		},
 		// returns an array of news created on the site that will be used to populate the homepage
@@ -165,7 +167,7 @@ const resolvers = {
 					after: newAfter,
 				}
 			} catch (error) {
-				return handleError("newsForHomeReddit", error)
+				throw new GenericError("newsForHomeReddit", error)
 			}
 		},
 		// returns an array of news of a certain author to display on his profile
@@ -182,7 +184,7 @@ const resolvers = {
 
 				return news
 			} catch (error) {
-				return handleError("newsForProfile", error)
+				throw new GenericError("newsForProfile", error)
 			}
 		},
 		// returns a unique news with the specified id
@@ -192,7 +194,8 @@ const resolvers = {
 
 				return news
 			} catch (error) {
-				return handleError("news", error)
+				// return handleError("news", error)
+				throw new GenericError("news", error)
 			}
 		},
 	},
@@ -356,7 +359,7 @@ const resolvers = {
 
 				return returnData
 			} catch (error) {
-				return handleError("author", error)
+				throw new GenericError("author", error)
 			}
 		},
 		voteState: async ({ id }, _, { dataSources, userId }) => {
@@ -366,7 +369,7 @@ const resolvers = {
 
 				return "none"
 			} catch (error) {
-				return handleError("voteState", error)
+				throw new GenericError("voteState", error)
 			}
 		},
 		saveState: async ({ id }, _, { dataSources, userId }) => {
@@ -376,7 +379,7 @@ const resolvers = {
 
 				return "unsave"
 			} catch (error) {
-				return handleError("saveState", error)
+				throw new GenericError("saveState", error)
 			}
 		},
 	},

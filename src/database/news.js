@@ -79,6 +79,11 @@ const News = sequelize.define("News", {
 		allowNull: false,
 		defaultValue: 0,
 	},
+	// the link of the news, formatted properly
+	link: {
+		type: DataTypes.STRING,
+		allowNull: false,
+	},
 })
 
 module.exports = News

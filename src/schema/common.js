@@ -5,7 +5,7 @@ const {
 	UserInputError,
 } = require("apollo-server")
 
-const { dataToFetch, handleError, handleMutationError } = require("../utils")
+const { dataToFetch, handleMutationError, GenericError } = require("../utils")
 
 const typeDefs = gql`
 	union Item = News | Comment
@@ -65,7 +65,7 @@ const resolvers = {
 
 				return items
 			} catch (error) {
-				return handleError("liked", error)
+				throw new GenericError("liked", error)
 			}
 		},
 		saved: async (
@@ -86,7 +86,7 @@ const resolvers = {
 
 				return items
 			} catch (error) {
-				return handleError("saved", error)
+				throw new GenericError("saved", error)
 			}
 		},
 	},
@@ -120,8 +120,7 @@ const resolvers = {
 			} catch (error) {
 				return {
 					...handleMutationError("vote", error),
-					likes: 0,
-					dislikes: 0,
+					score: 0,
 				}
 			}
 		},

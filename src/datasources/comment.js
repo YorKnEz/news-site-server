@@ -3,7 +3,7 @@ const { UserInputError } = require("apollo-server")
 const { Op } = require("sequelize")
 
 const { Comment, News, UserVote } = require("../database")
-const { handleError } = require("../utils")
+const { GenericError } = require("../utils")
 
 class CommentAPI extends DataSource {
 	constructor() {
@@ -41,7 +41,7 @@ class CommentAPI extends DataSource {
 
 			return comments
 		} catch (error) {
-			return handleError("getCommentsByDate", error)
+			throw new GenericError("getCommentsByDate", error)
 		}
 	}
 
@@ -101,7 +101,7 @@ class CommentAPI extends DataSource {
 
 			return comments
 		} catch (error) {
-			return handleError("getCommentsByScore", error)
+			throw new GenericError("getCommentsByScore", error)
 		}
 	}
 
@@ -142,7 +142,7 @@ class CommentAPI extends DataSource {
 
 			return comment
 		} catch (error) {
-			return handleError("addComment", error)
+			throw new GenericError("addComment", error)
 		}
 	}
 
@@ -171,7 +171,7 @@ class CommentAPI extends DataSource {
 			// return the updated comment
 			return comment
 		} catch (error) {
-			return handleError("editComment", error)
+			throw new GenericError("editComment", error)
 		}
 	}
 
@@ -199,7 +199,7 @@ class CommentAPI extends DataSource {
 			// return the deleted comment
 			return comment
 		} catch (error) {
-			return handleError("removeComment", error)
+			throw new GenericError("removeComment", error)
 		}
 	}
 
@@ -224,7 +224,7 @@ class CommentAPI extends DataSource {
 
 			return comment.replies
 		} catch (error) {
-			return handleError("updateRepliesCounter", error)
+			throw new GenericError("updateRepliesCounter", error)
 		}
 	}
 }

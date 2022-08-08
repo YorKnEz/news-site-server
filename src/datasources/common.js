@@ -3,7 +3,7 @@ const { UserInputError } = require("apollo-server")
 const { Op } = require("sequelize")
 
 const { Comment, News, UserVote, UserSave } = require("../database")
-const { handleError } = require("../utils")
+const { GenericError } = require("../utils")
 
 class CommonAPI extends DataSource {
 	constructor() {
@@ -58,7 +58,7 @@ class CommonAPI extends DataSource {
 
 			return items
 		} catch (error) {
-			return handleError("getLiked", error)
+			throw new GenericError("getLiked", error)
 		}
 	}
 
@@ -187,7 +187,7 @@ class CommonAPI extends DataSource {
 				score: parent.score,
 			}
 		} catch (error) {
-			return handleError("vote", error)
+			throw new GenericError("vote", error)
 		}
 	}
 
@@ -207,7 +207,7 @@ class CommonAPI extends DataSource {
 
 			return link.type
 		} catch (error) {
-			return handleError("getVoteState", error)
+			throw new GenericError("getVoteState", error)
 		}
 	}
 
@@ -258,7 +258,7 @@ class CommonAPI extends DataSource {
 
 			return items
 		} catch (error) {
-			return handleError("getSaved")
+			throw new GenericError("getSaved", error)
 		}
 	}
 
@@ -305,7 +305,7 @@ class CommonAPI extends DataSource {
 				message: "Invalid action",
 			}
 		} catch (error) {
-			return handleError("save", error)
+			throw new GenericError("save", error)
 		}
 	}
 
@@ -326,7 +326,7 @@ class CommonAPI extends DataSource {
 			// if not then the state is unsaved
 			return "unsave"
 		} catch (error) {
-			return handleError("getSaveState", error)
+			throw new GenericError("getSaveState", error)
 		}
 	}
 }

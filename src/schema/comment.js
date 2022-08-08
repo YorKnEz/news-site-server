@@ -1,6 +1,6 @@
 const { gql, AuthenticationError, ForbiddenError } = require("apollo-server")
 
-const { dataToFetch, handleError, handleMutationError } = require("../utils")
+const { dataToFetch, handleMutationError, GenericError } = require("../utils")
 
 const typeDefs = gql`
 	type Query {
@@ -108,7 +108,7 @@ const resolvers = {
 
 				return null
 			} catch (error) {
-				return handleError("commentForNews", error)
+				throw new GenericError("commentForNews", error)
 			}
 		},
 		commentReplies: async (
@@ -137,7 +137,7 @@ const resolvers = {
 
 				return null
 			} catch (error) {
-				return handleError("commentReplies", error)
+				throw new GenericError("commentReplies", error)
 			}
 		},
 	},
@@ -267,7 +267,7 @@ const resolvers = {
 					profilePicture: user.profilePicture,
 				}
 			} catch (error) {
-				return handleError("author", error)
+				throw new GenericError("author", error)
 			}
 		},
 		voteState: async ({ id }, _, { dataSources, userId }) => {
@@ -277,7 +277,7 @@ const resolvers = {
 
 				return "none"
 			} catch (error) {
-				return handleError("voteState", error)
+				throw new GenericError("voteState", error)
 			}
 		},
 		saveState: async ({ id }, _, { dataSources, userId }) => {
@@ -287,7 +287,7 @@ const resolvers = {
 
 				return "unsave"
 			} catch (error) {
-				return handleError("saveState", error)
+				throw new GenericError("saveState", error)
 			}
 		},
 	},
