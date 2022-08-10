@@ -8,7 +8,7 @@ const {
 const { dataToFetch, handleMutationError, GenericError } = require("../utils")
 
 const typeDefs = gql`
-	union Item = News | Comment
+	union Item = News | CommentCard
 
 	type Query {
 		"Gets the liked news and comments by a user"
@@ -42,6 +42,11 @@ const typeDefs = gql`
 		success: Boolean!
 		"Human-readable message for the UI"
 		message: String!
+	}
+
+	type CommentCard {
+		comment: Comment!
+		news: NewsShort
 	}
 `
 
@@ -154,13 +159,22 @@ const resolvers = {
 			}
 		},
 	},
+	CommentCard: {
+		news: async ({ comment }, _, { dataSources }) => {
+			try {
+				return dataSources.newsAPI.getNewsById(comment.newsId)
+			} catch (error) {
+				throw new GenericError("news", error)
+			}
+		},
+	},
 	Item: {
-		__resolveType: async ({ title, replies }) => {
+		__resolveType: async ({ title, comment }) => {
 			// only news have a title
 			if (title !== undefined) return "News"
 
-			// only comments have replies
-			if (replies !== undefined) return "Comment"
+			// only comment cards have a comment
+			if (comment !== undefined) return "CommentCard"
 
 			// throw an error
 			return null

@@ -127,7 +127,19 @@ const typeDefs = gql`
 		"Wether the news has been saved or not. Can be either 'save', 'unsave'"
 		saveState: String!
 		"The link of the news, formatted."
-		link: String!
+		link: String
+	}
+
+	type NewsShort {
+		id: ID!
+		"The news' title"
+		title: String!
+		"The creator of the news"
+		author: AuthorShort!
+		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site)"
+		type: String!
+		"The link of the news, formatted."
+		link: String
 	}
 `
 
@@ -380,6 +392,37 @@ const resolvers = {
 				return "unsave"
 			} catch (error) {
 				throw new GenericError("saveState", error)
+			}
+		},
+	},
+	NewsShort: {
+		author: async ({ authorId, type }, _, { dataSources }) => {
+			try {
+				let returnData
+
+				// available types: "reddit", "created"
+				switch (type) {
+					case "created":
+						const author = await dataSources.userAPI.getAuthorById(authorId)
+
+						returnData = {
+							id: author.id,
+							fullName: author.fullName,
+							profilePicture: author.profilePicture,
+						}
+
+						break
+					case "[deleted]":
+						returnData = {
+							id: "[deleted]",
+							fullName: "[deleted]",
+							profilePicture: "default",
+						}
+				}
+
+				return returnData
+			} catch (error) {
+				throw new GenericError("author", error)
 			}
 		},
 	},

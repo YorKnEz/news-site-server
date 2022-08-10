@@ -51,7 +51,9 @@ class CommonAPI extends DataSource {
 					}
 
 					if (parentType === "comment") {
-						return Comment.findOne({ where: { id: parentId } })
+						return {
+							comment: await Comment.findOne({ where: { id: parentId } }),
+						}
 					}
 				})
 			)
@@ -251,7 +253,9 @@ class CommonAPI extends DataSource {
 					}
 
 					if (parentType === "comment") {
-						return Comment.findOne({ where: { id: parentId } })
+						return {
+							comment: await Comment.findOne({ where: { id: parentId } }),
+						}
 					}
 				})
 			)
