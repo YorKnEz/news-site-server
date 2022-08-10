@@ -26,7 +26,7 @@ const Comment = sequelize.define("Comment", {
 	},
 	// the body of the comment, the comment itself
 	body: {
-		type: DataTypes.STRING,
+		type: DataTypes.TEXT,
 		allowNull: false,
 	},
 	likes: {

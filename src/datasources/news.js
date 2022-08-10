@@ -339,6 +339,7 @@ class NewsAPI extends DataSource {
 				tags: newsData.tags,
 				body: newsData.body,
 				type: "created",
+				link: newsData.title.replace(/(\W+)/g, "-").toLowerCase(),
 			})
 
 			// increment the users writtenNews
@@ -394,6 +395,7 @@ class NewsAPI extends DataSource {
 				tags: newsData.tags,
 				body: newsData.body,
 				type: "created",
+				link: newsData.title.replace(/(\W+)/g, "-").toLowerCase(),
 			})
 
 			// save changes
