@@ -1,11 +1,11 @@
-const { gql, AuthenticationError, UserInputError } = require("apollo-server")
+const { gql, AuthenticationError } = require("apollo-server")
 
 const { dataToFetch, GenericError } = require("../utils")
 
 const typeDefs = gql`
 	type Query {
-		"Gets author info about an author"
-		author(id: ID!): Author!
+		"Gets user info about a user"
+		user(id: ID!): Author!
 		"Gets all the followed authors of a user"
 		followedAuthors(offset: Int): [Author!]
 	}
@@ -35,9 +35,9 @@ const typeDefs = gql`
 		"The type of the user, can be either user or author"
 		type: String!
 		"The number of news written by author"
-		writtenNews: Int!
+		writtenNews: Int
 		"The number of followers of the author"
-		followers: Int!
+		followers: Int
 		"The date the account has been created"
 		createdAt: String!
 		"Specifies if the author is being followed by the user"
@@ -47,18 +47,18 @@ const typeDefs = gql`
 
 const resolvers = {
 	Query: {
-		author: async (_, { id }, { dataSources, token }) => {
+		user: async (_, { id }, { dataSources, token }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const author = await dataSources.userAPI.getAuthorById(id)
+				const user = await dataSources.userAPI.getUserById(id)
 
 				return {
-					...author.toJSON(),
+					...user.toJSON(),
 				}
 			} catch (error) {
-				throw new GenericError("author", error)
+				throw new GenericError("user", error)
 			}
 		},
 		followedAuthors: async (_, { offset }, { dataSources, token, userId }) => {

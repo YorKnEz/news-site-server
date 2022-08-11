@@ -129,6 +129,7 @@ exports.register = async (req, res, next) => {
 			message:
 				"Registered successfully. Check your email to verify your account.",
 			user: {
+				id: user.id,
 				firstName: user.firstName,
 				lastName: user.lastName,
 				fullName: user.fullName,
@@ -138,6 +139,7 @@ exports.register = async (req, res, next) => {
 				type: user.type,
 				writtenNews: user?.writtenNews,
 				followers: user?.followers,
+				createdAt: user.createdAt.getTime(),
 			},
 		})
 	} catch (e) {
@@ -202,6 +204,9 @@ exports.login = async (req, res, next) => {
 				verified: user.verified,
 				profilePicture: user.profilePicture,
 				type: user.type,
+				writtenNews: user?.writtenNews,
+				followers: user?.followers,
+				createdAt: user.createdAt.getTime(),
 			},
 		})
 	} catch (e) {
@@ -213,7 +218,7 @@ exports.login = async (req, res, next) => {
 // this is required for Apollo access control
 exports.loginJWT = async (req, res, next) => {
 	try {
-		const userJWT = await UserJWT.findOne({ where: { jwt: req.body.token } })
+		const userJWT = await UserJWT.findOne({ where: { jwt: req.query.token } })
 
 		if (!userJWT) {
 			return next({

@@ -82,7 +82,7 @@ const News = sequelize.define("News", {
 	// the link of the news, formatted properly
 	link: {
 		type: DataTypes.STRING,
-		allowNull: false,
+		allowNull: true,
 	},
 })
 
