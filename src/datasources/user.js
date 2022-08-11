@@ -49,7 +49,7 @@ class UserAPI extends DataSource {
 
 			return user
 		} catch (error) {
-			throw new GenericError("getAuthorById", error)
+			throw new GenericError("getUserById", error)
 		}
 	}
 

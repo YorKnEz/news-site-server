@@ -46,10 +46,7 @@ async function startApolloServer() {
 				if (token) {
 					const { data } = await axios({
 						method: "get",
-						url: `${authIp}/users/login`,
-						data: {
-							token,
-						},
+						url: `${authIp}/users/login?token=${token}`,
 					})
 
 					// add the token to the context

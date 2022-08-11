@@ -218,7 +218,7 @@ exports.login = async (req, res, next) => {
 // this is required for Apollo access control
 exports.loginJWT = async (req, res, next) => {
 	try {
-		const userJWT = await UserJWT.findOne({ where: { jwt: req.body.token } })
+		const userJWT = await UserJWT.findOne({ where: { jwt: req.query.token } })
 
 		if (!userJWT) {
 			return next({
