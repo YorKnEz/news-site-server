@@ -178,7 +178,8 @@ class NewsAPI extends DataSource {
 				],
 			})
 
-			const mostRecentNews = await News.findOne({
+			const mostRecentNews = await News.findAll({
+				limit: 1,
 				where: {
 					authorId,
 				},

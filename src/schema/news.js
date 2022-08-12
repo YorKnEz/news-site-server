@@ -23,7 +23,7 @@ const typeDefs = gql`
 		"Gets a news by id"
 		news(id: ID!): News!
 		"News to display on an author's profile card"
-		newsForProfileCard(id: ID!): [News!]
+		newsForProfileCard(id: ID, newsId: ID): [News!]
 	}
 
 	type Mutation {
@@ -32,7 +32,7 @@ const typeDefs = gql`
 		"Updates existing news in the db based on input"
 		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
 		"Deletes a news by id"
-		deleteNews(id: ID!): DeleteNewsResponse!
+		deleteNews(id: ID): DeleteNewsResponse!
 		"Increase or decrease the comments counter of a news"
 		updateCommentsCounter(
 			action: String!
@@ -210,10 +210,16 @@ const resolvers = {
 				throw new GenericError("news", error)
 			}
 		},
-		newsForProfileCard: async (_, { id }, { dataSources, token }) => {
+		newsForProfileCard: async (_, { id, newsId }, { dataSources, token }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (newsId) {
+					const { authorId } = await dataSources.newsAPI.getNewsById(newsId)
+
+					return dataSources.newsAPI.getNewsForProfileCard(authorId)
+				}
 
 				return dataSources.newsAPI.getNewsForProfileCard(id)
 			} catch (error) {
