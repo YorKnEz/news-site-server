@@ -112,8 +112,6 @@ const typeDefs = gql`
 		type: String!
 		"The creation date of the news"
 		createdAt: String!
-		"The last time the news was edited"
-		updatedAt: String!
 		"Wether the user already voted the news. Can be 'like', 'dislike' or 'none'"
 		voteState: String!
 		"The number of likes the post has"
