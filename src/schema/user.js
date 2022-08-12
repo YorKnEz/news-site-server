@@ -8,6 +8,8 @@ const typeDefs = gql`
 		user(id: ID!): Author!
 		"Gets all the followed authors of a user"
 		followedAuthors(offset: Int): [Author!]
+		"Get top 5 best authors on the db"
+		bestAuthors: [Author!]
 	}
 
 	"Author data to be displayed on a news card"
@@ -75,6 +77,16 @@ const resolvers = {
 				return authors
 			} catch (error) {
 				throw new GenericError("followedAuthors", error)
+			}
+		},
+		bestAuthors: async (_, __, { dataSources, token }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				return dataSources.userAPI.getBestAuthors()
+			} catch (error) {
+				throw new GenericError("bestAuthors", error)
 			}
 		},
 	},

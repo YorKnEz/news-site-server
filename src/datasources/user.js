@@ -105,6 +105,25 @@ class UserAPI extends DataSource {
 			throw new GenericError("getFollowedAuthors", error)
 		}
 	}
+
+	async getBestAuthors() {
+		try {
+			// find the top five best authors
+			return User.findAll({
+				limit: 5,
+				where: {
+					type: "author",
+				},
+				order: [
+					["followers", "DESC"],
+					["writtenNews", "DESC"],
+					["id", "DESC"],
+				],
+			})
+		} catch (error) {
+			throw new GenericError("getBestAuthors", error)
+		}
+	}
 }
 
 module.exports = UserAPI
