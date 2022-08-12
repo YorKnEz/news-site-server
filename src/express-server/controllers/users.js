@@ -270,14 +270,17 @@ exports.verify = async (req, res, next) => {
 		})
 
 		// verify the user
-		user.verified = true
+		await user.update({ verified: true })
+
 		// update the user
 		await user.save()
 
 		// destroy the verification session
 		await userToken.destroy()
 
-		res.status(200).send("Email verified successfully.")
+		res
+			.status(200)
+			.send({ message: "Email verified successfully.", userId: user.id })
 	} catch (e) {
 		next(e)
 	}
