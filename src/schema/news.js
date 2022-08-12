@@ -22,6 +22,8 @@ const typeDefs = gql`
 		newsForProfile(oldestId: ID!, id: ID!): [News!]
 		"Gets a news by id"
 		news(id: ID!): News!
+		"News to display on an author's profile card"
+		newsForProfileCard(id: ID!): [News!]
 	}
 
 	type Mutation {
@@ -206,6 +208,16 @@ const resolvers = {
 			} catch (error) {
 				// return handleError("news", error)
 				throw new GenericError("news", error)
+			}
+		},
+		newsForProfileCard: async (_, { id }, { dataSources, token }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				return dataSources.newsAPI.getNewsForProfileCard(id)
+			} catch (error) {
+				throw new GenericError("newsForProfileCard", error)
 			}
 		},
 	},

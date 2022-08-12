@@ -163,6 +163,37 @@ class NewsAPI extends DataSource {
 		}
 	}
 
+	// retrieve 2 of the best news and the most recent one of a certain author
+	async getNewsForProfileCard(authorId) {
+		try {
+			const bestNews = await News.findAll({
+				limit: 2,
+				where: {
+					authorId,
+				},
+				orderBy: [
+					["score", "DESC"],
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			})
+
+			const mostRecentNews = await News.findOne({
+				where: {
+					authorId,
+				},
+				orderBy: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			})
+
+			return [...bestNews, ...mostRecentNews]
+		} catch (error) {
+			throw new GenericError("getNewsForProfileCard", error)
+		}
+	}
+
 	// adds news from RedditAPI to the database
 	// news is an array
 	async addNewsFromReddit(newsData) {
