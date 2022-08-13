@@ -51,7 +51,7 @@ class NewsAPI extends DataSource {
 	async getNewsByScore(oldestId, dataToFetch) {
 		try {
 			// find the oldest news
-			const oldestNews = await News.findOne({
+			let oldestNews = await News.findOne({
 				where: { id: oldestId },
 			})
 
@@ -77,6 +77,9 @@ class NewsAPI extends DataSource {
 			})
 
 			if (news.length < dataToFetch) {
+				// the oldestNews becomes the last fetched news by the query above or remains the same
+				oldestNews = news.length ? news[news.length - 1] : oldestNews
+
 				const dataToFetch2 = dataToFetch - news.length
 
 				options = {}
