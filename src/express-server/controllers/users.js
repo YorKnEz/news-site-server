@@ -17,7 +17,7 @@ const path = require("path")
 const { v1: uuidv1 } = require("uuid")
 
 // database models
-const { User, UserJWT, Token, UserFollow } = require("../../database")
+const { User, UserJWT, Token } = require("../../database")
 
 // middleware
 const middleware = require("./middleware")
@@ -422,103 +422,6 @@ exports.signOut = async (req, res, next) => {
 		await userJWT.destroy()
 
 		res.status(200).send("Signed out successfully.")
-	} catch (e) {
-		next(e)
-	}
-}
-
-exports.follow = async (req, res, next) => {
-	try {
-		const author = await User.findOne({
-			where: { id: req.params.authorId, type: "author" },
-		})
-
-		if (!author) {
-			return next({
-				status: 404,
-				message: "Author not found.",
-			})
-		}
-
-		if (author.id === res.locals.userId) {
-			return next({
-				status: 400,
-				message: "You can't follow yourself.",
-			})
-		}
-
-		// check if there is already a follow link between the user and author
-		const link = await UserFollow.findOne({
-			where: {
-				UserId: res.locals.userId,
-				authorId: author.id,
-			},
-		})
-
-		if (link) {
-			return next({
-				status: 400,
-				message: "You already follow this author.",
-			})
-		}
-
-		await UserFollow.create({
-			UserId: res.locals.userId,
-			authorId: author.id,
-		})
-
-		await author.update({
-			followers: author.followers + 1,
-		})
-
-		res.status(200).send("Author followed successfully.")
-	} catch (e) {
-		next(e)
-	}
-}
-
-exports.unfollow = async (req, res, next) => {
-	try {
-		const author = await User.findOne({
-			where: { id: req.params.authorId, type: "author" },
-		})
-
-		if (!author) {
-			return next({
-				status: 404,
-				message: "Author not found.",
-			})
-		}
-
-		if (author.id === res.locals.userId) {
-			return next({
-				status: 400,
-				message: "You can't unfollow yourself.",
-			})
-		}
-
-		// check if there is already a follow link between the user and author
-		const link = await UserFollow.findOne({
-			where: {
-				UserId: res.locals.userId,
-				authorId: author.id,
-			},
-		})
-
-		if (!link) {
-			return next({
-				status: 400,
-				message: "You are not following this author.",
-			})
-		}
-
-		await link.destroy()
-
-		await author.update({
-			followers: author.followers - 1,
-		})
-
-		res.status(200).send("Author unfollowed successfully.")
 	} catch (e) {
 		next(e)
 	}

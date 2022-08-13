@@ -14,8 +14,4 @@ router.use(checkJWT)
 // route definitions
 router.delete("/sign-out", users.signOut)
 
-router.patch("/follow/:authorId", users.follow)
-
-router.patch("/unfollow/:authorId", users.unfollow)
-
 module.exports = router
