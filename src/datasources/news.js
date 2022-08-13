@@ -221,7 +221,7 @@ class NewsAPI extends DataSource {
 					thumbnail: "",
 					subreddit: data.subreddit_name_prefixed,
 					sources: "https://www.reddit.com" + data.permalink,
-					body: "",
+					body: data.selftext ? data.selftext : "",
 					type: "reddit",
 				})
 
