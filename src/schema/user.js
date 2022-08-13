@@ -1,4 +1,4 @@
-const { gql, AuthenticationError } = require("apollo-server")
+const { gql, AuthenticationError, UserInputError } = require("apollo-server")
 
 const { dataToFetch, GenericError } = require("../utils")
 
@@ -10,6 +10,19 @@ const typeDefs = gql`
 		followedAuthors(offset: Int): [Author!]
 		"Get top 5 best authors on the db"
 		bestAuthors: [Author!]
+	}
+
+	type Mutation {
+		follow(action: String!, id: ID!): FollowResponse!
+	}
+
+	type FollowResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
 	}
 
 	"Author data to be displayed on a news card"
@@ -87,6 +100,30 @@ const resolvers = {
 				return dataSources.userAPI.getBestAuthors()
 			} catch (error) {
 				throw new GenericError("bestAuthors", error)
+			}
+		},
+	},
+	Mutation: {
+		follow: async (_, { action, id }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (action !== "follow" && action !== "unfollow")
+					throw new UserInputError("Invalid action")
+
+				if (id === userId)
+					throw new UserInputError("You can't follow/unfollow yourself")
+
+				const message = await dataSources.userAPI.follow(action, id, userId)
+
+				return {
+					code: 200,
+					success: true,
+					message,
+				}
+			} catch (error) {
+				throw new GenericError("follow", error)
 			}
 		},
 	},

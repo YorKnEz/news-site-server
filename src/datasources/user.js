@@ -1,4 +1,5 @@
 const { DataSource } = require("apollo-datasource")
+const { UserInputError } = require("apollo-server")
 const { Op } = require("sequelize")
 
 const { User, UserFollow } = require("../database")
@@ -122,6 +123,62 @@ class UserAPI extends DataSource {
 			})
 		} catch (error) {
 			throw new GenericError("getBestAuthors", error)
+		}
+	}
+
+	// follow or unfollow a user
+	async follow(action, authorId, userId) {
+		try {
+			const author = await User.findOne({
+				where: {
+					id: authorId,
+				},
+			})
+
+			if (!author)
+				throw new UserInputError("The author you want to follow doesn't exist")
+
+			if (author.type === "user")
+				throw new UserInputError("You can't follow regular users")
+
+			// find if the author has been already followed
+			const link = await UserFollow.findOne({
+				where: {
+					UserId: userId,
+					authorId,
+				},
+			})
+
+			if (action === "follow" && link)
+				throw new UserInputError("You already follow this author")
+
+			if (action === "unfollow" && !link)
+				throw new UserInputError("You don't follow this author")
+
+			if (action === "follow" && !link) {
+				// create the follow link
+				await UserFollow.create({
+					UserId: userId,
+					authorId,
+				})
+			}
+
+			if (action === "unfollow" && link) {
+				// destroy the follow link
+				await link.destroy()
+			}
+
+			// update the author's followers
+			await author.update({
+				followers: author.followers + (action === "follow" ? 1 : -1),
+			})
+
+			// save the changes
+			await author.save()
+
+			return `Author ${action}ed successfully`
+		} catch (error) {
+			throw new GenericError("follow", error)
 		}
 	}
 }
