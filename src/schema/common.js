@@ -12,9 +12,9 @@ const typeDefs = gql`
 
 	type Query {
 		"Gets the liked news and comments by a user"
-		liked(oldestId: ID!, oldestType: String!): [Item!]
+		liked(oldestId: ID!, oldestType: String!, userId: ID!): [Item!]
 		"Gets the saved news and comments by a user"
-		saved(oldestId: ID!, oldestType: String!): [Item!]
+		saved(oldestId: ID!, oldestType: String!, userId: ID!): [Item!]
 	}
 
 	type Mutation {
@@ -54,8 +54,8 @@ const resolvers = {
 	Query: {
 		liked: async (
 			_,
-			{ oldestId, oldestType },
-			{ dataSources, token, userId }
+			{ oldestId, oldestType, userId },
+			{ dataSources, token }
 		) => {
 			try {
 				if (!token)
@@ -75,8 +75,8 @@ const resolvers = {
 		},
 		saved: async (
 			_,
-			{ oldestId, oldestType },
-			{ dataSources, token, userId }
+			{ oldestId, oldestType, userId },
+			{ dataSources, token }
 		) => {
 			try {
 				if (!token)
