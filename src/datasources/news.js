@@ -33,8 +33,8 @@ class NewsAPI extends DataSource {
 			}
 
 			if (oldestNews) {
-				options.createdAt = { [Op.lte]: oldestNews.createdAt }
-				options.id = { [Op.lt]: oldestId }
+				options.where.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.where.id = { [Op.lt]: oldestId }
 			}
 
 			// get the news
@@ -63,9 +63,9 @@ class NewsAPI extends DataSource {
 			}
 
 			if (oldestNews) {
-				options.score = { [Op.eq]: oldestNews.score }
-				options.createdAt = { [Op.lte]: oldestNews.createdAt }
-				options.id = { [Op.not]: oldestNews.id }
+				options.where.score = { [Op.eq]: oldestNews.score }
+				options.where.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.where.id = { [Op.not]: oldestNews.id }
 			}
 
 			const news = await News.findAll(options)
@@ -73,13 +73,13 @@ class NewsAPI extends DataSource {
 			// if the fetched news are less that the max, try to fetch more
 			if (news.length < dataToFetch) {
 				// the oldestNews becomes the last fetched news by the query above or remains the same
-				oldestNews = news.length ? news[news.length - 1] : oldestNews
+				oldestNews = news.length > 0 ? news[news.length - 1] : oldestNews
 
 				options.limit = dataToFetch - news.length
 				options.where = { type: "created" }
 
 				if (oldestNews) {
-					options.score = { [Op.lt]: oldestNews.score }
+					options.where.score = { [Op.lt]: oldestNews.score }
 				}
 
 				const restOfNews = await News.findAll(options)
@@ -118,8 +118,8 @@ class NewsAPI extends DataSource {
 			}
 
 			if (oldestNews) {
-				options.createdAt = { [Op.lte]: oldestNews.createdAt }
-				options.id = { [Op.lt]: oldestId }
+				options.where.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.where.id = { [Op.lt]: oldestId }
 			}
 
 			return News.findAll(options)
