@@ -91,17 +91,15 @@ class UserAPI extends DataSource {
 				attributes: ["authorId"],
 			})
 
-			const authors = await Promise.all(
+			return Promise.all(
 				authorIds.map(async ({ authorId }) => {
 					const author = await User.findOne({
 						where: { id: authorId },
 					})
 
-					return author.toJSON()
+					return author
 				})
 			)
-
-			return authors
 		} catch (error) {
 			throw new GenericError("getFollowedAuthors", error)
 		}

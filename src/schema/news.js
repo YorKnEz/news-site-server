@@ -23,7 +23,12 @@ const typeDefs = gql`
 		"Gets a news by id"
 		news(id: ID!): News!
 		"News to display on an author's profile card"
-		newsForProfileCard(id: ID, newsId: ID): [News!]
+		newsForProfileCard(
+			id: ID
+			newsId: ID
+			howManyBest: Int!
+			howManyRecent: Int!
+		): NewsForProfiledCardResponse
 	}
 
 	type Mutation {
@@ -33,11 +38,6 @@ const typeDefs = gql`
 		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
 		"Deletes a news by id"
 		deleteNews(id: ID): DeleteNewsResponse!
-		"Increase or decrease the comments counter of a news"
-		updateCommentsCounter(
-			action: String!
-			id: ID!
-		): UpdateCommentsCounterResponse!
 	}
 
 	input NewsInput {
@@ -51,6 +51,11 @@ const typeDefs = gql`
 	type NewsForHomeRedditResponse {
 		after: String
 		news: [News!]
+	}
+
+	type NewsForProfiledCardResponse {
+		best: [News!]
+		recent: [News!]
 	}
 
 	type CreateNewsResponse {
@@ -80,17 +85,6 @@ const typeDefs = gql`
 		success: Boolean!
 		"Human-readable message for the UI"
 		message: String!
-	}
-
-	type UpdateCommentsCounterResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of comments"
-		comments: Int!
 	}
 
 	"This is the structure of a news"
@@ -123,7 +117,7 @@ const typeDefs = gql`
 		"The score of the news. The score is the difference between likes and dislikes."
 		score: Int!
 		"The number of comments"
-		comments: Int
+		replies: Int
 		"Wether the news has been saved or not. Can be either 'save', 'unsave'"
 		saveState: String!
 		"The link of the news, formatted."
@@ -168,14 +162,9 @@ const resolvers = {
 				const { newAfter, fetchedNews } =
 					await dataSources.redditAPI.getNewsFromRomania(after, dataToFetch)
 
-				// add the newly fetched reddit news to the database
-				const response = await dataSources.newsAPI.addNewsFromReddit(
-					fetchedNews
-				)
-
 				// return the news and the offset for the next news
 				return {
-					news: response,
+					news: await dataSources.newsAPI.addNewsFromReddit(fetchedNews),
 					after: newAfter,
 				}
 			} catch (error) {
@@ -188,13 +177,7 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const news = await dataSources.newsAPI.getAuthorNews(
-					oldestId,
-					id,
-					dataToFetch
-				)
-
-				return news
+				return dataSources.newsAPI.getAuthorNews(oldestId, id, dataToFetch)
 			} catch (error) {
 				throw new GenericError("newsForProfile", error)
 			}
@@ -202,15 +185,17 @@ const resolvers = {
 		// returns a unique news with the specified id
 		news: async (_, { id }, { dataSources }) => {
 			try {
-				const news = await dataSources.newsAPI.getNewsById(id)
-
-				return news
+				return dataSources.newsAPI.getNewsById(id)
 			} catch (error) {
 				// return handleError("news", error)
 				throw new GenericError("news", error)
 			}
 		},
-		newsForProfileCard: async (_, { id, newsId }, { dataSources, token }) => {
+		newsForProfileCard: async (
+			_,
+			{ id, newsId, howManyBest, howManyRecent },
+			{ dataSources, token }
+		) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
@@ -218,10 +203,18 @@ const resolvers = {
 				if (newsId) {
 					const { authorId } = await dataSources.newsAPI.getNewsById(newsId)
 
-					return dataSources.newsAPI.getNewsForProfileCard(authorId)
+					return dataSources.newsAPI.getNewsForProfileCard(
+						authorId,
+						howManyBest,
+						howManyRecent
+					)
 				}
 
-				return dataSources.newsAPI.getNewsForProfileCard(id)
+				return dataSources.newsAPI.getNewsForProfileCard(
+					id,
+					howManyBest,
+					howManyRecent
+				)
 			} catch (error) {
 				throw new GenericError("newsForProfileCard", error)
 			}
@@ -245,13 +238,11 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const newsId = await dataSources.newsAPI.createNews(newsData, userId)
-
 				return {
 					code: 200,
 					success: true,
 					message: "The news has been successfully created",
-					id: newsId,
+					id: await dataSources.newsAPI.createNews(newsData, userId),
 				}
 			} catch (error) {
 				return {
@@ -278,11 +269,7 @@ const resolvers = {
 					)
 
 				// handle news update
-				const updatedNews = await dataSources.newsAPI.updateNews(
-					newsData,
-					id,
-					userId
-				)
+				await dataSources.newsAPI.updateNews(newsData, id, userId)
 
 				return {
 					code: 200,
@@ -322,30 +309,6 @@ const resolvers = {
 				return handleMutationError("deleteNews", error)
 			}
 		},
-		updateCommentsCounter: async (
-			_,
-			{ action, id },
-			{ dataSources, token }
-		) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				const comments = dataSources.newsAPI.updateCommentsCounter(action, id)
-
-				return {
-					code: 200,
-					success: true,
-					message: "Updated counter successfully",
-					comments,
-				}
-			} catch (error) {
-				return {
-					...handleMutationError("updateCommentsCounter", error),
-					comments: 0,
-				}
-			}
-		},
 	},
 	News: {
 		author: async ({ authorId, type }, _, { dataSources }) => {
@@ -368,13 +331,7 @@ const resolvers = {
 
 						break
 					case "created":
-						const author = await dataSources.userAPI.getAuthorById(authorId)
-
-						returnData = {
-							id: author.id,
-							fullName: author.fullName,
-							profilePicture: author.profilePicture,
-						}
+						returnData = dataSources.userAPI.getAuthorById(authorId)
 
 						break
 					case "[deleted]":
@@ -383,6 +340,7 @@ const resolvers = {
 							fullName: "[deleted]",
 							profilePicture: "default",
 						}
+						break
 				}
 
 				return returnData
@@ -419,13 +377,7 @@ const resolvers = {
 				// available types: "reddit", "created"
 				switch (type) {
 					case "created":
-						const author = await dataSources.userAPI.getAuthorById(authorId)
-
-						returnData = {
-							id: author.id,
-							fullName: author.fullName,
-							profilePicture: author.profilePicture,
-						}
+						returnData = dataSources.userAPI.getAuthorById(authorId)
 
 						break
 					case "[deleted]":
@@ -434,6 +386,7 @@ const resolvers = {
 							fullName: "[deleted]",
 							profilePicture: "default",
 						}
+						break
 				}
 
 				return returnData

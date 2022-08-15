@@ -22,6 +22,12 @@ const typeDefs = gql`
 		vote(action: String!, parentId: ID!, parentType: String!): VoteResponse!
 		"Save a news or comment. Action can be either 'save' or 'unsave'"
 		save(action: String!, parentId: ID!, parentType: String!): SaveResponse!
+		"Update the replies counter of either news or comments"
+		updateRepliesCounter(
+			action: String!
+			id: ID!
+			type: String
+		): UpdateRepliesCounterResponse!
 	}
 
 	type VoteResponse {
@@ -44,6 +50,17 @@ const typeDefs = gql`
 		message: String!
 	}
 
+	type UpdateRepliesCounterResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"Updated number of replies"
+		replies: Int!
+	}
+
 	type CommentCard {
 		comment: Comment!
 		news: NewsShort
@@ -61,14 +78,12 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const items = await dataSources.commonAPI.getLiked(
+				return dataSources.commonAPI.getLiked(
 					oldestId,
 					oldestType,
 					userId,
 					dataToFetch
 				)
-
-				return items
 			} catch (error) {
 				throw new GenericError("liked", error)
 			}
@@ -82,14 +97,12 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const items = await dataSources.commonAPI.getSaved(
+				return dataSources.commonAPI.getSaved(
 					oldestId,
 					oldestType,
 					userId,
 					dataToFetch
 				)
-
-				return items
 			} catch (error) {
 				throw new GenericError("saved", error)
 			}
@@ -106,7 +119,7 @@ const resolvers = {
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				if (action === "like" || action === "dislike") {
-					const response = await dataSources.commonAPI.vote(
+					const { message, score } = await dataSources.commonAPI.vote(
 						action,
 						parentId,
 						parentType,
@@ -116,8 +129,8 @@ const resolvers = {
 					return {
 						code: 200,
 						success: true,
-						message: response.message,
-						score: response.score,
+						message,
+						score,
 					}
 				} else {
 					throw new UserInputError("Invalid action.")
@@ -139,23 +152,43 @@ const resolvers = {
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				if (action === "save" || action === "unsave") {
-					const response = await dataSources.commonAPI.save(
+					return dataSources.commonAPI.save(
 						action,
 						parentId,
 						parentType,
 						userId
 					)
-
-					return {
-						code: response.code,
-						success: response.success,
-						message: response.message,
-					}
 				} else {
 					throw new UserInputError("Invalid action.")
 				}
 			} catch (error) {
 				return handleMutationError("save", error)
+			}
+		},
+		updateRepliesCounter: async (
+			_,
+			{ action, id, type },
+			{ dataSources, token }
+		) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				return {
+					code: 200,
+					success: true,
+					message: "Updated counter successfully",
+					replies: await dataSources.commonAPI.updateRepliesCounter(
+						action,
+						id,
+						type
+					),
+				}
+			} catch (error) {
+				return {
+					...handleMutationError("updateRepliesCounter", error),
+					replies: 0,
+				}
 			}
 		},
 	},

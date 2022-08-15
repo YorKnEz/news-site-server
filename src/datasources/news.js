@@ -23,26 +23,22 @@ class NewsAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest news
-			const options = {}
-
-			if (oldestNews) {
-				options.createdAt = { [Op.lte]: oldestNews.createdAt }
-				options.id = { [Op.lt]: oldestId }
-			}
-
-			options.type = "created"
-
-			// get the news
-			const news = await News.findAll({
+			const options = {
 				limit: dataToFetch,
-				where: options,
+				where: { type: "created" },
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
-			})
+			}
 
-			return news
+			if (oldestNews) {
+				options.where.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.where.id = { [Op.lt]: oldestId }
+			}
+
+			// get the news
+			return News.findAll(options)
 		} catch (error) {
 			throw new GenericError("getNewsByDate", error)
 		}
@@ -56,51 +52,39 @@ class NewsAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest news
-			let options = {}
-
-			if (oldestNews) {
-				options.score = { [Op.eq]: oldestNews.score }
-				options.createdAt = { [Op.lte]: oldestNews.createdAt }
-				options.id = { [Op.not]: oldestNews.id }
-			}
-
-			options.type = "created"
-
-			const news = await News.findAll({
+			let options = {
 				limit: dataToFetch,
-				where: options,
+				where: { type: "created" },
 				order: [
 					["score", "DESC"],
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
-			})
+			}
 
+			if (oldestNews) {
+				options.where.score = { [Op.eq]: oldestNews.score }
+				options.where.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.where.id = { [Op.not]: oldestNews.id }
+			}
+
+			const news = await News.findAll(options)
+
+			// if the fetched news are less that the max, try to fetch more
 			if (news.length < dataToFetch) {
 				// the oldestNews becomes the last fetched news by the query above or remains the same
-				oldestNews = news.length ? news[news.length - 1] : oldestNews
+				oldestNews = news.length > 0 ? news[news.length - 1] : oldestNews
 
-				const dataToFetch2 = dataToFetch - news.length
-
-				options = {}
+				options.limit = dataToFetch - news.length
+				options.where = { type: "created" }
 
 				if (oldestNews) {
-					options.score = { [Op.lt]: oldestNews.score }
+					options.where.score = { [Op.lt]: oldestNews.score }
 				}
 
-				options.type = "created"
+				const restOfNews = await News.findAll(options)
 
-				const news2 = await News.findAll({
-					limit: dataToFetch2,
-					where: options,
-					order: [
-						["score", "DESC"],
-						["createdAt", "DESC"],
-						["id", "DESC"],
-					],
-				})
-
-				return [...news, ...news2]
+				return [...news, ...restOfNews]
 			}
 
 			return news
@@ -124,26 +108,21 @@ class NewsAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest news
-			const options = {}
-
-			if (oldestNews) {
-				options.createdAt = { [Op.lte]: oldestNews.createdAt }
-				options.id = { [Op.lt]: oldestId }
-			}
-
-			options.type = "created"
-			options.authorId = author.id
-
-			const news = await News.findAll({
+			const options = {
 				limit: dataToFetch,
-				where: options,
+				where: { type: "created", authorId: author.id },
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
-			})
+			}
 
-			return news
+			if (oldestNews) {
+				options.where.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.where.id = { [Op.lt]: oldestId }
+			}
+
+			return News.findAll(options)
 		} catch (error) {
 			throw new GenericError("getAuthorNews", error)
 		}
@@ -158,7 +137,7 @@ class NewsAPI extends DataSource {
 				},
 			})
 
-			if (!news) throw "News not in our database"
+			if (!news) throw new GenericError("News not in our database")
 
 			return news
 		} catch (error) {
@@ -167,14 +146,14 @@ class NewsAPI extends DataSource {
 	}
 
 	// retrieve 2 of the best news and the most recent one of a certain author
-	async getNewsForProfileCard(authorId) {
+	async getNewsForProfileCard(authorId, howManyBest, howManyRecent) {
 		try {
 			const bestNews = await News.findAll({
-				limit: 2,
+				limit: howManyBest,
 				where: {
 					authorId,
 				},
-				orderBy: [
+				order: [
 					["score", "DESC"],
 					["createdAt", "DESC"],
 					["id", "DESC"],
@@ -182,17 +161,17 @@ class NewsAPI extends DataSource {
 			})
 
 			const mostRecentNews = await News.findAll({
-				limit: 1,
+				limit: howManyRecent,
 				where: {
 					authorId,
 				},
-				orderBy: [
+				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
 			})
 
-			return [...bestNews, ...mostRecentNews]
+			return { best: bestNews, recent: mostRecentNews }
 		} catch (error) {
 			throw new GenericError("getNewsForProfileCard", error)
 		}
@@ -203,33 +182,30 @@ class NewsAPI extends DataSource {
 	async addNewsFromReddit(newsData) {
 		try {
 			// map through the news
-			const news = newsData.map(async ({ data }) => {
-				// try to find if the current news has already been added
-				const news = await News.findOne({
-					where: { redditId: data.id },
+			return Promise.all(
+				newsData.map(async ({ data }) => {
+					// try to find if the current news has already been added
+					const news = await News.findOne({
+						where: { redditId: data.id },
+					})
+
+					// if the news exists, return it
+					if (news) return news
+
+					// if it doesn't exist, create it and return it
+					return News.create({
+						redditId: data.id,
+						title: formatTitle(data.title),
+						authorId: data.author,
+						createdAt: data.created * 1000,
+						thumbnail: "",
+						subreddit: data.subreddit_name_prefixed,
+						sources: "https://www.reddit.com" + data.permalink,
+						body: data.selftext ? data.selftext : "",
+						type: "reddit",
+					})
 				})
-
-				// if the news exists, return it
-				if (news) return news.toJSON()
-
-				// if it doesn't exist, create it
-				const newsObject = await News.create({
-					redditId: data.id,
-					title: formatTitle(data.title),
-					authorId: data.author,
-					createdAt: data.created * 1000,
-					thumbnail: "",
-					subreddit: data.subreddit_name_prefixed,
-					sources: "https://www.reddit.com" + data.permalink,
-					body: data.selftext ? data.selftext : "",
-					type: "reddit",
-				})
-
-				// and return it
-				return newsObject.toJSON()
-			})
-
-			return Promise.all(news)
+			)
 		} catch (error) {
 			throw new GenericError("addNewsFromReddit", error)
 		}
@@ -277,11 +253,9 @@ class NewsAPI extends DataSource {
 			})
 
 			// sort the results by matches percentage
-			results = finalResult.sort(
+			return finalResult.sort(
 				(result1, result2) => result2.matches - result1.matches
 			)
-
-			return results
 		} catch (error) {
 			throw new GenericError("searchNewsByTitle", error)
 		}
@@ -296,9 +270,7 @@ class NewsAPI extends DataSource {
 				},
 			})
 
-			return news.map(n => ({
-				news: n,
-			}))
+			return news.map(n => ({ result: n }))
 		} catch (error) {
 			throw new GenericError("searchNewsByBody", error)
 		}
@@ -346,11 +318,9 @@ class NewsAPI extends DataSource {
 			})
 
 			// sort the results by matches percentage
-			results = finalResult.sort(
+			return finalResult.sort(
 				(result1, result2) => result2.matches - result1.matches
 			)
-
-			return results
 		} catch (error) {
 			throw new GenericError("searchNewsByTags", error)
 		}
@@ -492,29 +462,6 @@ class NewsAPI extends DataSource {
 			await user.save()
 		} catch (error) {
 			throw new GenericError("deleteNews", error)
-		}
-	}
-
-	// update the comments counter of the news
-	async updateCommentsCounter(action, newsId) {
-		try {
-			// get the news
-			const news = await News.findOne({
-				where: { id: newsId },
-			})
-
-			// if the news is not found, throw an error
-			if (!news) throw new UserInputError("Invalid input.")
-
-			if (action === "up") await news.update({ comments: news.comments + 1 })
-
-			if (action === "down") await news.update({ comments: news.comments - 1 })
-
-			await news.save()
-
-			return news.comments
-		} catch (error) {
-			throw new GenericError("updateCommentsCounter", error)
 		}
 	}
 }

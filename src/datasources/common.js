@@ -23,28 +23,28 @@ class CommonAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest items
-			const options = {}
-
-			if (oldestLike) {
-				options.createdAt = { [Op.lte]: oldestLike.createdAt }
-				options.id = { [Op.lt]: oldestLike.id }
-			}
-
-			options.type = "like"
-			options.UserId = userId
-
-			// retrieve all the ids of the liked items
-			const likedItemsIds = await UserVote.findAll({
+			const options = {
 				limit: dataToFetch,
-				where: options,
+				where: {
+					type: "like",
+					UserId: userId,
+				},
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
-			})
+			}
+
+			if (oldestLike) {
+				options.where.createdAt = { [Op.lte]: oldestLike.createdAt }
+				options.where.id = { [Op.lt]: oldestLike.id }
+			}
+
+			// retrieve all the ids of the liked items
+			const likedItemsIds = await UserVote.findAll(options)
 
 			// get all the items based on the ids
-			const items = await Promise.all(
+			return Promise.all(
 				likedItemsIds.map(async ({ parentId, parentType }) => {
 					if (parentType === "news") {
 						return News.findOne({ where: { id: parentId } })
@@ -57,8 +57,6 @@ class CommonAPI extends DataSource {
 					}
 				})
 			)
-
-			return items
 		} catch (error) {
 			throw new GenericError("getLiked", error)
 		}
@@ -226,27 +224,27 @@ class CommonAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest news
-			const options = {}
-
-			if (oldestSave) {
-				options.createdAt = { [Op.lte]: oldestSave.createdAt }
-				options.id = { [Op.lt]: oldestSave.id }
-			}
-
-			options.UserId = userId
-
-			// retrieve all the ids of the liked news
-			const savedItemsIds = await UserSave.findAll({
+			const options = {
 				limit: dataToFetch,
-				where: options,
+				where: {
+					UserId: userId,
+				},
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
-			})
+			}
+
+			if (oldestSave) {
+				options.where.createdAt = { [Op.lte]: oldestSave.createdAt }
+				options.where.id = { [Op.lt]: oldestSave.id }
+			}
+
+			// retrieve all the ids of the liked news
+			const savedItemsIds = await UserSave.findAll(options)
 
 			// get all the news based on the ids
-			const items = await Promise.all(
+			return Promise.all(
 				savedItemsIds.map(async ({ parentId, parentType }) => {
 					if (parentType === "news") {
 						return News.findOne({ where: { id: parentId } })
@@ -259,8 +257,6 @@ class CommonAPI extends DataSource {
 					}
 				})
 			)
-
-			return items
 		} catch (error) {
 			throw new GenericError("getSaved", error)
 		}
@@ -331,6 +327,39 @@ class CommonAPI extends DataSource {
 			return "unsave"
 		} catch (error) {
 			throw new GenericError("getSaveState", error)
+		}
+	}
+
+	// update the replies counter of a comment or news
+	async updateRepliesCounter(action, id, type) {
+		try {
+			let item
+
+			// get the item
+			if (type === "news") {
+				item = await News.findOne({
+					where: { id },
+				})
+			} else if (type === "comment") {
+				item = await Comment.findOne({
+					where: { id },
+				})
+			}
+
+			// if the item is not found, throw an error
+			if (!item) throw new UserInputError("Invalid input.")
+
+			// increment or decrement the comment
+			let value = action === "up" ? 1 : -1
+
+			await item.update({ replies: item.replies + value })
+
+			// save changes
+			await item.save()
+
+			return item.replies
+		} catch (error) {
+			throw new GenericError("updateRepliesCounter", error)
 		}
 	}
 }

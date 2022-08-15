@@ -17,11 +17,6 @@ const typeDefs = gql`
 		editComment(commentData: CommentInput!, id: ID!): CommentResponse!
 		"Remove a comment"
 		removeComment(id: ID!): CommentResponse!
-		"Increase or decrease the replies counter of a comment"
-		updateRepliesCounter(
-			action: String!
-			id: ID!
-		): UpdateRepliesCounterResponse!
 	}
 
 	input CommentInput {
@@ -40,17 +35,6 @@ const typeDefs = gql`
 		message: String!
 		"The comment"
 		comment: Comment
-	}
-
-	type UpdateRepliesCounterResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of replies"
-		replies: Int!
 	}
 
 	type Comment {
@@ -156,16 +140,11 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const comment = await dataSources.commentAPI.addComment(
-					commentData,
-					userId
-				)
-
 				return {
 					code: 200,
 					success: true,
 					message: "Added comment successfully.",
-					comment,
+					comment: await dataSources.commentAPI.addComment(commentData, userId),
 				}
 			} catch (error) {
 				return handleMutationError("addComment", error)
@@ -185,17 +164,15 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const comment = await dataSources.commentAPI.editComment(
-					commentData,
-					userId,
-					id
-				)
-
 				return {
 					code: 200,
 					success: true,
 					message: "Edited comment successfully.",
-					comment,
+					comment: await dataSources.commentAPI.editComment(
+						commentData,
+						userId,
+						id
+					),
 				}
 			} catch (error) {
 				return handleMutationError("editComment", error)
@@ -215,36 +192,14 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const comment = await dataSources.commentAPI.removeComment(id, userId)
-
 				return {
 					code: 200,
 					success: true,
 					message: "Removed comment successfully.",
-					comment,
+					comment: await dataSources.commentAPI.removeComment(id, userId),
 				}
 			} catch (error) {
 				return handleMutationError("removeComment", error)
-			}
-		},
-		updateRepliesCounter: async (_, { action, id }, { dataSources, token }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				const replies = dataSources.commentAPI.updateRepliesCounter(action, id)
-
-				return {
-					code: 200,
-					success: true,
-					message: "Updated counter successfully",
-					replies,
-				}
-			} catch (error) {
-				return {
-					...handleMutationError("updateRepliesCounter", error),
-					replies: 0,
-				}
 			}
 		},
 	},
@@ -259,13 +214,7 @@ const resolvers = {
 					}
 				}
 
-				const user = await dataSources.userAPI.getUserById(UserId)
-
-				return {
-					id: user.id,
-					fullName: user.fullName,
-					profilePicture: user.profilePicture,
-				}
+				return dataSources.userAPI.getUserById(UserId)
 			} catch (error) {
 				throw new GenericError("author", error)
 			}
