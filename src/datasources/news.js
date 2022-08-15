@@ -146,14 +146,14 @@ class NewsAPI extends DataSource {
 	}
 
 	// retrieve 2 of the best news and the most recent one of a certain author
-	async getNewsForProfileCard(authorId) {
+	async getNewsForProfileCard(authorId, howManyBest, howManyRecent) {
 		try {
 			const bestNews = await News.findAll({
-				limit: 2,
+				limit: howManyBest,
 				where: {
 					authorId,
 				},
-				orderBy: [
+				order: [
 					["score", "DESC"],
 					["createdAt", "DESC"],
 					["id", "DESC"],
@@ -161,17 +161,17 @@ class NewsAPI extends DataSource {
 			})
 
 			const mostRecentNews = await News.findAll({
-				limit: 1,
+				limit: howManyRecent,
 				where: {
 					authorId,
 				},
-				orderBy: [
+				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
 			})
 
-			return [...bestNews, ...mostRecentNews]
+			return { best: bestNews, recent: mostRecentNews }
 		} catch (error) {
 			throw new GenericError("getNewsForProfileCard", error)
 		}

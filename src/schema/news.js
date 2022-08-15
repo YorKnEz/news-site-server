@@ -23,7 +23,12 @@ const typeDefs = gql`
 		"Gets a news by id"
 		news(id: ID!): News!
 		"News to display on an author's profile card"
-		newsForProfileCard(id: ID, newsId: ID): [News!]
+		newsForProfileCard(
+			id: ID
+			newsId: ID
+			howManyBest: Int!
+			howManyRecent: Int!
+		): NewsForProfiledCardResponse
 	}
 
 	type Mutation {
@@ -46,6 +51,11 @@ const typeDefs = gql`
 	type NewsForHomeRedditResponse {
 		after: String
 		news: [News!]
+	}
+
+	type NewsForProfiledCardResponse {
+		best: [News!]
+		recent: [News!]
 	}
 
 	type CreateNewsResponse {
@@ -181,7 +191,11 @@ const resolvers = {
 				throw new GenericError("news", error)
 			}
 		},
-		newsForProfileCard: async (_, { id, newsId }, { dataSources, token }) => {
+		newsForProfileCard: async (
+			_,
+			{ id, newsId, howManyBest, howManyRecent },
+			{ dataSources, token }
+		) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
@@ -189,10 +203,18 @@ const resolvers = {
 				if (newsId) {
 					const { authorId } = await dataSources.newsAPI.getNewsById(newsId)
 
-					return dataSources.newsAPI.getNewsForProfileCard(authorId)
+					return dataSources.newsAPI.getNewsForProfileCard(
+						authorId,
+						howManyBest,
+						howManyRecent
+					)
 				}
 
-				return dataSources.newsAPI.getNewsForProfileCard(id)
+				return dataSources.newsAPI.getNewsForProfileCard(
+					id,
+					howManyBest,
+					howManyRecent
+				)
 			} catch (error) {
 				throw new GenericError("newsForProfileCard", error)
 			}
