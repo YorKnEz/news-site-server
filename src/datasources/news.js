@@ -494,29 +494,6 @@ class NewsAPI extends DataSource {
 			throw new GenericError("deleteNews", error)
 		}
 	}
-
-	// update the comments counter of the news
-	async updateCommentsCounter(action, newsId) {
-		try {
-			// get the news
-			const news = await News.findOne({
-				where: { id: newsId },
-			})
-
-			// if the news is not found, throw an error
-			if (!news) throw new UserInputError("Invalid input.")
-
-			if (action === "up") await news.update({ comments: news.comments + 1 })
-
-			if (action === "down") await news.update({ comments: news.comments - 1 })
-
-			await news.save()
-
-			return news.comments
-		} catch (error) {
-			throw new GenericError("updateCommentsCounter", error)
-		}
-	}
 }
 
 module.exports = NewsAPI

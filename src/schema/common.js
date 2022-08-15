@@ -22,6 +22,12 @@ const typeDefs = gql`
 		vote(action: String!, parentId: ID!, parentType: String!): VoteResponse!
 		"Save a news or comment. Action can be either 'save' or 'unsave'"
 		save(action: String!, parentId: ID!, parentType: String!): SaveResponse!
+		"Update the replies counter of either news or comments"
+		updateRepliesCounter(
+			action: String!
+			id: ID!
+			type: String
+		): UpdateRepliesCounterResponse!
 	}
 
 	type VoteResponse {
@@ -42,6 +48,17 @@ const typeDefs = gql`
 		success: Boolean!
 		"Human-readable message for the UI"
 		message: String!
+	}
+
+	type UpdateRepliesCounterResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"Updated number of replies"
+		replies: Int!
 	}
 
 	type CommentCard {
@@ -156,6 +173,32 @@ const resolvers = {
 				}
 			} catch (error) {
 				return handleMutationError("save", error)
+			}
+		},
+		updateRepliesCounter: async (
+			_,
+			{ action, id, type },
+			{ dataSources, token }
+		) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				return {
+					code: 200,
+					success: true,
+					message: "Updated counter successfully",
+					replies: await dataSources.commonAPI.updateRepliesCounter(
+						action,
+						id,
+						type
+					),
+				}
+			} catch (error) {
+				return {
+					...handleMutationError("updateRepliesCounter", error),
+					replies: 0,
+				}
 			}
 		},
 	},

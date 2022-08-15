@@ -73,8 +73,8 @@ const News = sequelize.define("News", {
 		allowNull: false,
 		defaultValue: 0,
 	},
-	// number of comments
-	comments: {
+	// number of replies
+	replies: {
 		type: DataTypes.INTEGER,
 		allowNull: false,
 		defaultValue: 0,

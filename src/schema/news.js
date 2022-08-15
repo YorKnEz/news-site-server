@@ -33,11 +33,6 @@ const typeDefs = gql`
 		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
 		"Deletes a news by id"
 		deleteNews(id: ID): DeleteNewsResponse!
-		"Increase or decrease the comments counter of a news"
-		updateCommentsCounter(
-			action: String!
-			id: ID!
-		): UpdateCommentsCounterResponse!
 	}
 
 	input NewsInput {
@@ -82,17 +77,6 @@ const typeDefs = gql`
 		message: String!
 	}
 
-	type UpdateCommentsCounterResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of comments"
-		comments: Int!
-	}
-
 	"This is the structure of a news"
 	type News {
 		id: ID!
@@ -123,7 +107,7 @@ const typeDefs = gql`
 		"The score of the news. The score is the difference between likes and dislikes."
 		score: Int!
 		"The number of comments"
-		comments: Int
+		replies: Int
 		"Wether the news has been saved or not. Can be either 'save', 'unsave'"
 		saveState: String!
 		"The link of the news, formatted."
@@ -320,30 +304,6 @@ const resolvers = {
 				}
 			} catch (error) {
 				return handleMutationError("deleteNews", error)
-			}
-		},
-		updateCommentsCounter: async (
-			_,
-			{ action, id },
-			{ dataSources, token }
-		) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				const comments = dataSources.newsAPI.updateCommentsCounter(action, id)
-
-				return {
-					code: 200,
-					success: true,
-					message: "Updated counter successfully",
-					comments,
-				}
-			} catch (error) {
-				return {
-					...handleMutationError("updateCommentsCounter", error),
-					comments: 0,
-				}
 			}
 		},
 	},

@@ -333,6 +333,39 @@ class CommonAPI extends DataSource {
 			throw new GenericError("getSaveState", error)
 		}
 	}
+
+	// update the replies counter of a comment or news
+	async updateRepliesCounter(action, id, type) {
+		try {
+			let item
+
+			// get the item
+			if (type === "news") {
+				item = await News.findOne({
+					where: { id },
+				})
+			} else if (type === "comment") {
+				item = await Comment.findOne({
+					where: { id },
+				})
+			}
+
+			// if the item is not found, throw an error
+			if (!item) throw new UserInputError("Invalid input.")
+
+			// increment or decrement the comment
+			let value = action === "up" ? 1 : -1
+
+			await item.update({ replies: item.replies + value })
+
+			// save changes
+			await item.save()
+
+			return item.replies
+		} catch (error) {
+			throw new GenericError("updateRepliesCounter", error)
+		}
+	}
 }
 
 module.exports = CommonAPI

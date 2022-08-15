@@ -202,31 +202,6 @@ class CommentAPI extends DataSource {
 			throw new GenericError("removeComment", error)
 		}
 	}
-
-	// update the replies counter of the comment
-	async updateRepliesCounter(action, commentId) {
-		try {
-			// get the news
-			const comment = await Comment.findOne({
-				where: { id: commentId },
-			})
-
-			// if the news is not found, throw an error
-			if (!comment) throw new UserInputError("Invalid input.")
-
-			if (action === "up")
-				await comment.update({ replies: comment.replies + 1 })
-
-			if (action === "down")
-				await comment.update({ replies: comment.replies - 1 })
-
-			await comment.save()
-
-			return comment.replies
-		} catch (error) {
-			throw new GenericError("updateRepliesCounter", error)
-		}
-	}
 }
 
 module.exports = CommentAPI
