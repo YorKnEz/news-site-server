@@ -67,11 +67,7 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const user = await dataSources.userAPI.getUserById(id)
-
-				return {
-					...user.toJSON(),
-				}
+				return dataSources.userAPI.getUserById(id)
 			} catch (error) {
 				throw new GenericError("user", error)
 			}
@@ -115,12 +111,10 @@ const resolvers = {
 				if (id === userId)
 					throw new UserInputError("You can't follow/unfollow yourself")
 
-				const message = await dataSources.userAPI.follow(action, id, userId)
-
 				return {
 					code: 200,
 					success: true,
-					message,
+					message: await dataSources.userAPI.follow(action, id, userId),
 				}
 			} catch (error) {
 				throw new GenericError("follow", error)
@@ -133,9 +127,7 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const result = await dataSources.userfollowAPI.isFollowing(id, userId)
-
-				return result
+				return dataSources.userfollowAPI.isFollowing(id, userId)
 			} catch (error) {
 				throw new GenericError("following", error)
 			}

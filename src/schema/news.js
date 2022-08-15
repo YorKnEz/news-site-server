@@ -152,14 +152,9 @@ const resolvers = {
 				const { newAfter, fetchedNews } =
 					await dataSources.redditAPI.getNewsFromRomania(after, dataToFetch)
 
-				// add the newly fetched reddit news to the database
-				const response = await dataSources.newsAPI.addNewsFromReddit(
-					fetchedNews
-				)
-
 				// return the news and the offset for the next news
 				return {
-					news: response,
+					news: await dataSources.newsAPI.addNewsFromReddit(fetchedNews),
 					after: newAfter,
 				}
 			} catch (error) {
@@ -172,13 +167,7 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const news = await dataSources.newsAPI.getAuthorNews(
-					oldestId,
-					id,
-					dataToFetch
-				)
-
-				return news
+				return dataSources.newsAPI.getAuthorNews(oldestId, id, dataToFetch)
 			} catch (error) {
 				throw new GenericError("newsForProfile", error)
 			}
@@ -186,9 +175,7 @@ const resolvers = {
 		// returns a unique news with the specified id
 		news: async (_, { id }, { dataSources }) => {
 			try {
-				const news = await dataSources.newsAPI.getNewsById(id)
-
-				return news
+				return dataSources.newsAPI.getNewsById(id)
 			} catch (error) {
 				// return handleError("news", error)
 				throw new GenericError("news", error)
@@ -229,13 +216,11 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const newsId = await dataSources.newsAPI.createNews(newsData, userId)
-
 				return {
 					code: 200,
 					success: true,
 					message: "The news has been successfully created",
-					id: newsId,
+					id: await dataSources.newsAPI.createNews(newsData, userId),
 				}
 			} catch (error) {
 				return {
@@ -262,11 +247,7 @@ const resolvers = {
 					)
 
 				// handle news update
-				const updatedNews = await dataSources.newsAPI.updateNews(
-					newsData,
-					id,
-					userId
-				)
+				await dataSources.newsAPI.updateNews(newsData, id, userId)
 
 				return {
 					code: 200,
@@ -328,13 +309,7 @@ const resolvers = {
 
 						break
 					case "created":
-						const author = await dataSources.userAPI.getAuthorById(authorId)
-
-						returnData = {
-							id: author.id,
-							fullName: author.fullName,
-							profilePicture: author.profilePicture,
-						}
+						returnData = dataSources.userAPI.getAuthorById(authorId)
 
 						break
 					case "[deleted]":
@@ -343,6 +318,7 @@ const resolvers = {
 							fullName: "[deleted]",
 							profilePicture: "default",
 						}
+						break
 				}
 
 				return returnData
@@ -379,13 +355,7 @@ const resolvers = {
 				// available types: "reddit", "created"
 				switch (type) {
 					case "created":
-						const author = await dataSources.userAPI.getAuthorById(authorId)
-
-						returnData = {
-							id: author.id,
-							fullName: author.fullName,
-							profilePicture: author.profilePicture,
-						}
+						returnData = dataSources.userAPI.getAuthorById(authorId)
 
 						break
 					case "[deleted]":
@@ -394,6 +364,7 @@ const resolvers = {
 							fullName: "[deleted]",
 							profilePicture: "default",
 						}
+						break
 				}
 
 				return returnData

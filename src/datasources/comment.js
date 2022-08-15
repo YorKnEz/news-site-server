@@ -19,27 +19,22 @@ class CommentAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest news
-			const options = {}
-
-			if (oldestComm) {
-				options.createdAt = { [Op.lte]: oldestComm.createdAt }
-				options.id = { [Op.lt]: oldestId }
-			}
-
-			options.parentId = parentId
-			options.parentType = parentType
-
-			// get the news
-			const comments = await Comment.findAll({
+			const options = {
 				limit: dataToFetch,
-				where: options,
+				where: { parentId, parentType },
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
-			})
+			}
 
-			return comments
+			if (oldestComm) {
+				options.where.createdAt = { [Op.lte]: oldestComm.createdAt }
+				options.where.id = { [Op.lt]: oldestId }
+			}
+
+			// get the news
+			return Comment.findAll(options)
 		} catch (error) {
 			throw new GenericError("getCommentsByDate", error)
 		}
@@ -53,50 +48,36 @@ class CommentAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest comment
-			let options = {}
-
-			if (oldestComm) {
-				options.score = { [Op.eq]: oldestComm.score }
-				options.createdAt = { [Op.lte]: oldestComm.createdAt }
-				options.id = { [Op.not]: oldestComm.id }
-			}
-
-			options.parentId = parentId
-			options.parentType = parentType
-
-			const comments = await Comment.findAll({
+			let options = {
 				limit: dataToFetch,
-				where: options,
+				where: { parentId, parentType },
 				order: [
 					["score", "DESC"],
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
-			})
+			}
 
+			if (oldestComm) {
+				options.where.score = { [Op.eq]: oldestComm.score }
+				options.where.createdAt = { [Op.lte]: oldestComm.createdAt }
+				options.where.id = { [Op.not]: oldestComm.id }
+			}
+
+			const comments = await Comment.findAll(options)
+
+			// if the max number of comments hasn't been fetch, try to fetch more
 			if (oldestId && comments.length < dataToFetch) {
-				const dataToFetch2 = dataToFetch - comments.length
-
-				options = {}
+				options.limit = dataToFetch - comments.length
+				options.where = { parentId, parentType }
 
 				if (oldestComm) {
-					options.score = { [Op.lt]: oldestComm.score }
+					options.where.score = { [Op.lt]: oldestComm.score }
 				}
 
-				options.parentId = parentId
-				options.parentType = parentType
+				const restOfComments = await Comment.findAll(options)
 
-				const comments2 = await Comment.findAll({
-					limit: dataToFetch2,
-					where: options,
-					order: [
-						["score", "DESC"],
-						["createdAt", "DESC"],
-						["id", "DESC"],
-					],
-				})
-
-				return [...comments, ...comments2]
+				return [...comments, ...restOfComments]
 			}
 
 			return comments
@@ -107,32 +88,26 @@ class CommentAPI extends DataSource {
 
 	async addComment(commentData, userId) {
 		try {
-			// if the parent of the comment is a news, we need to increase the comments counter
+			let item
+
+			// find the parent to increase the replies counter of
 			if (commentData.parentType === "news") {
 				// get the news
-				const news = await News.findOne({
+				item = await News.findOne({
 					where: { id: commentData.parentId },
 				})
-
-				// update the comment counter
-				await news.update({ comments: news.comments + 1 })
-
-				// save the changes
-				await news.save()
-			}
-			// if the parent of the comment is a comment, we need to incresea the replies counter
-			else if (commentData.parentType === "comment") {
+			} else if (commentData.parentType === "comment") {
 				// get the comment
-				const parentComment = await Comment.findOne({
+				item = await Comment.findOne({
 					where: { id: commentData.parentId },
 				})
-
-				// update the replies counter
-				await parentComment.update({ replies: parentComment.replies + 1 })
-
-				// save the changes
-				await parentComment.save()
 			}
+
+			// update the comment counter
+			await item.update({ replies: item.replies + 1 })
+
+			// save the changes
+			await item.save()
 
 			// create the comment
 			const comment = await Comment.create({

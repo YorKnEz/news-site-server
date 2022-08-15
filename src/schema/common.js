@@ -78,14 +78,12 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const items = await dataSources.commonAPI.getLiked(
+				return dataSources.commonAPI.getLiked(
 					oldestId,
 					oldestType,
 					userId,
 					dataToFetch
 				)
-
-				return items
 			} catch (error) {
 				throw new GenericError("liked", error)
 			}
@@ -99,14 +97,12 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const items = await dataSources.commonAPI.getSaved(
+				return dataSources.commonAPI.getSaved(
 					oldestId,
 					oldestType,
 					userId,
 					dataToFetch
 				)
-
-				return items
 			} catch (error) {
 				throw new GenericError("saved", error)
 			}
@@ -123,7 +119,7 @@ const resolvers = {
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				if (action === "like" || action === "dislike") {
-					const response = await dataSources.commonAPI.vote(
+					const { message, score } = await dataSources.commonAPI.vote(
 						action,
 						parentId,
 						parentType,
@@ -133,8 +129,8 @@ const resolvers = {
 					return {
 						code: 200,
 						success: true,
-						message: response.message,
-						score: response.score,
+						message,
+						score,
 					}
 				} else {
 					throw new UserInputError("Invalid action.")
@@ -156,18 +152,12 @@ const resolvers = {
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				if (action === "save" || action === "unsave") {
-					const response = await dataSources.commonAPI.save(
+					return dataSources.commonAPI.save(
 						action,
 						parentId,
 						parentType,
 						userId
 					)
-
-					return {
-						code: response.code,
-						success: response.success,
-						message: response.message,
-					}
 				} else {
 					throw new UserInputError("Invalid action.")
 				}

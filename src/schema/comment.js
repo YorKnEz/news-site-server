@@ -140,16 +140,11 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const comment = await dataSources.commentAPI.addComment(
-					commentData,
-					userId
-				)
-
 				return {
 					code: 200,
 					success: true,
 					message: "Added comment successfully.",
-					comment,
+					comment: await dataSources.commentAPI.addComment(commentData, userId),
 				}
 			} catch (error) {
 				return handleMutationError("addComment", error)
@@ -169,17 +164,15 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const comment = await dataSources.commentAPI.editComment(
-					commentData,
-					userId,
-					id
-				)
-
 				return {
 					code: 200,
 					success: true,
 					message: "Edited comment successfully.",
-					comment,
+					comment: await dataSources.commentAPI.editComment(
+						commentData,
+						userId,
+						id
+					),
 				}
 			} catch (error) {
 				return handleMutationError("editComment", error)
@@ -199,13 +192,11 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const comment = await dataSources.commentAPI.removeComment(id, userId)
-
 				return {
 					code: 200,
 					success: true,
 					message: "Removed comment successfully.",
-					comment,
+					comment: await dataSources.commentAPI.removeComment(id, userId),
 				}
 			} catch (error) {
 				return handleMutationError("removeComment", error)
@@ -223,13 +214,7 @@ const resolvers = {
 					}
 				}
 
-				const user = await dataSources.userAPI.getUserById(UserId)
-
-				return {
-					id: user.id,
-					fullName: user.fullName,
-					profilePicture: user.profilePicture,
-				}
+				return dataSources.userAPI.getUserById(UserId)
 			} catch (error) {
 				throw new GenericError("author", error)
 			}
