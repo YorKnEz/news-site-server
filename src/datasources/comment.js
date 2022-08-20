@@ -86,22 +86,61 @@ class CommentAPI extends DataSource {
 		}
 	}
 
-	async addComment(commentData, userId) {
+	async getCommentById(commentId) {
 		try {
-			let item
+			const comment = await Comment.findOne({
+				where: { id: commentId },
+			})
 
-			// find the parent to increase the replies counter of
-			if (commentData.parentType === "news") {
-				// get the news
-				item = await News.findOne({
-					where: { id: commentData.parentId },
-				})
-			} else if (commentData.parentType === "comment") {
-				// get the comment
-				item = await Comment.findOne({
-					where: { id: commentData.parentId },
+			if (!comment) throw new UserInputError("Invalid input.")
+
+			return comment
+		} catch (error) {
+			throw new GenericError("getCommentById", error)
+		}
+	}
+
+	async getNthParentId(depth, commentId) {
+		try {
+			let comment = await Comment.findOne({
+				where: { id: commentId },
+			})
+
+			for (let i = 0; i < depth - 1; i++) {
+				if (comment.parentType === "news") return -1
+
+				comment = await Comment.findOne({
+					where: { id: comment.parentId },
 				})
 			}
+
+			return comment.id
+		} catch (error) {
+			throw new GenericError("getNthParentId", error)
+		}
+	}
+
+	async addComment(commentData, userId) {
+		try {
+			let item = commentData
+
+			// update the comments replies recursively
+			while (item.parentType === "comment") {
+				item = await Comment.findOne({
+					where: { id: item.parentId },
+				})
+
+				// update the comment counter
+				await item.update({ replies: item.replies + 1 })
+
+				// save the changes
+				await item.save()
+			}
+
+			// get the news
+			item = await News.findOne({
+				where: { id: item.parentId },
+			})
 
 			// update the comment counter
 			await item.update({ replies: item.replies + 1 })
