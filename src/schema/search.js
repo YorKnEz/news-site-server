@@ -6,7 +6,7 @@ const typeDefs = gql`
 
 	type Query {
 		"Gets all matching authors or news matching a search string"
-		search(search: String!, filter: String!): [Result!]
+		search(search: String!, filter: String!, fetchedResults: Int!): [Result!]
 	}
 
 	type NewsSearch {
@@ -24,20 +24,24 @@ const typeDefs = gql`
 
 const resolvers = {
 	Query: {
-		search: async (_, { search, filter }, { dataSources, token }) => {
+		search: async (
+			_,
+			{ search, filter, fetchedResults },
+			{ dataSources, token }
+		) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				switch (filter) {
 					case "title":
-						return dataSources.newsAPI.searchNewsByTitle(search)
+						return dataSources.newsAPI.searchNewsByTitle(search, fetchedResults)
 					case "body":
-						return dataSources.newsAPI.searchNewsByBody(search)
+						return dataSources.newsAPI.searchNewsByBody(search, fetchedResults)
 					case "author":
-						return dataSources.userAPI.searchAuthors(search)
+						return dataSources.userAPI.searchAuthors(search, fetchedResults)
 					case "tags":
-						return dataSources.newsAPI.searchNewsByTags(search)
+						return dataSources.newsAPI.searchNewsByTags(search, fetchedResults)
 				}
 			} catch (error) {
 				throw new GenericError("search", error)
