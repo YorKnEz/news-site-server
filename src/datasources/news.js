@@ -234,8 +234,9 @@ class NewsAPI extends DataSource {
 			const news = await News.findAll({
 				limit: dataToFetch,
 				offset: fetchedResults,
-				where: {
-					body: { [Op.substring]: search },
+				where: Sequelize.literal("MATCH (body) AGAINST (:search)"),
+				replacements: {
+					search: search,
 				},
 			})
 

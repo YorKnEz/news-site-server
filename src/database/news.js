@@ -90,6 +90,7 @@ const News = sequelize.define(
 	{
 		indexes: [
 			{ type: "FULLTEXT", name: "title_index", fields: ["title"] },
+			{ type: "FULLTEXT", name: "body_index", fields: ["body"] },
 			{ type: "FULLTEXT", name: "tags_index", fields: ["tags"] },
 		],
 	}
