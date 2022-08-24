@@ -8,6 +8,10 @@ const typeDefs = gql`
 		commentsForNews(oldestId: ID!, newsId: ID!, sortBy: String!): [Comment!]
 		"Gets replies of a certain comment"
 		commentReplies(oldestId: ID!, commentId: ID!, sortBy: String!): [Comment!]
+		"Gets a comment by id"
+		commentById(commentId: ID!): Comment!
+		"Gets the d of the nth parent of the comment, required for paginaton"
+		commentNthParentId(depth: Int!, commentId: ID!): ID!
 	}
 
 	type Mutation {
@@ -122,6 +126,20 @@ const resolvers = {
 				return null
 			} catch (error) {
 				throw new GenericError("commentReplies", error)
+			}
+		},
+		commentById: async (_, { commentId }, { dataSources }) => {
+			try {
+				return dataSources.commentAPI.getCommentById(commentId)
+			} catch (error) {
+				throw new GenericError("commentById", error)
+			}
+		},
+		commentNthParentId: async (_, { depth, commentId }, { dataSources }) => {
+			try {
+				return dataSources.commentAPI.getNthParentId(depth, commentId)
+			} catch (error) {
+				throw new GenericError("commentNthParent", error)
 			}
 		},
 	},

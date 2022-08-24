@@ -1,10 +1,10 @@
 const { DataSource } = require("apollo-datasource")
 const { ForbiddenError, UserInputError } = require("apollo-server")
 const fs = require("fs")
-const { Op } = require("sequelize")
+const { Op, Sequelize } = require("sequelize")
 
-const { News, User } = require("../database")
-const { formatTitle, GenericError } = require("../utils")
+const { News, User, UserFollow } = require("../database")
+const { formatTitle, GenericError, dataToFetch } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
 const ip = process.env.EXPRESS_SERVER_IP
@@ -15,7 +15,7 @@ class NewsAPI extends DataSource {
 	}
 	// retrieve [newsToFetch] news based on the oldest fetched news id
 
-	async getNewsByDate(oldestId, dataToFetch) {
+	async getNewsByDate(oldestId, userId, dataToFetch) {
 		try {
 			// find the oldest news
 			const oldestNews = await News.findOne({
@@ -37,6 +37,16 @@ class NewsAPI extends DataSource {
 				options.where.id = { [Op.lt]: oldestId }
 			}
 
+			if (userId) {
+				const followedAuthors = await UserFollow.findAll({
+					where: { UserId: userId },
+				})
+
+				const authorIds = followedAuthors.map(a => a.authorId)
+
+				options.where.authorId = { [Op.in]: authorIds }
+			}
+
 			// get the news
 			return News.findAll(options)
 		} catch (error) {
@@ -44,7 +54,7 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	async getNewsByScore(oldestId, dataToFetch) {
+	async getNewsByScore(oldestId, userId, dataToFetch) {
 		try {
 			// find the oldest news
 			let oldestNews = await News.findOne({
@@ -68,6 +78,16 @@ class NewsAPI extends DataSource {
 				options.where.id = { [Op.not]: oldestNews.id }
 			}
 
+			if (userId) {
+				const followedAuthors = await UserFollow.findAll({
+					where: { UserId: userId },
+				})
+
+				const authorIds = followedAuthors.map(a => a.authorId)
+
+				options.where.authorId = { [Op.in]: authorIds }
+			}
+
 			const news = await News.findAll(options)
 
 			// if the fetched news are less that the max, try to fetch more
@@ -76,7 +96,10 @@ class NewsAPI extends DataSource {
 				oldestNews = news.length > 0 ? news[news.length - 1] : oldestNews
 
 				options.limit = dataToFetch - news.length
-				options.where = { type: "created" }
+				options.where = {
+					type: options.where.type,
+					authorId: options.where.authorId,
+				}
 
 				if (oldestNews) {
 					options.where.score = { [Op.lt]: oldestNews.score }
@@ -211,62 +234,32 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	async searchNewsByTitle(search) {
+	async searchNewsByTitle(search, fetchedResults) {
 		try {
-			let results = {}
-			const searchArr = search.split(" ")
-
-			await Promise.all(
-				// loop through the search words
-				searchArr.map(async s => {
-					// find all news that contain a specific word in the title
-					const news = await News.findAll({
-						where: {
-							title: { [Op.substring]: s },
-						},
-					})
-
-					// map those news in a key-value pair, where key is the id of the news and value is an object containing the news and the number of matches
-					news.forEach(data => {
-						if (results[data.id]) {
-							results[data.id].matches += 1
-						} else {
-							results[data.id] = {
-								result: data,
-								matches: 1,
-							}
-						}
-					})
-				})
-			)
-
-			// get the keys of the results map
-			const keys = Object.keys(results)
-
-			// map the results into an array with the matches prop turned into a percentage
-			const finalResult = keys.map(key => {
-				results[key].matches = Math.floor(
-					(results[key].matches / searchArr.length) * 100
-				)
-
-				return results[key]
+			const news = await News.findAll({
+				limit: dataToFetch,
+				offset: fetchedResults,
+				where: Sequelize.literal("MATCH (title) AGAINST (:search)"),
+				replacements: {
+					search: search,
+				},
 			})
 
-			// sort the results by matches percentage
-			return finalResult.sort(
-				(result1, result2) => result2.matches - result1.matches
-			)
+			return news.map(n => ({ result: n }))
 		} catch (error) {
 			throw new GenericError("searchNewsByTitle", error)
 		}
 	}
 
 	// for efficiency reasons (lol), the search string must be an exact match of the content of the news, otherwise it won't find anything
-	async searchNewsByBody(search) {
+	async searchNewsByBody(search, fetchedResults) {
 		try {
 			const news = await News.findAll({
-				where: {
-					body: { [Op.substring]: search },
+				limit: dataToFetch,
+				offset: fetchedResults,
+				where: Sequelize.literal("MATCH (body) AGAINST (:search)"),
+				replacements: {
+					search: search,
 				},
 			})
 
@@ -276,51 +269,18 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	async searchNewsByTags(search) {
+	async searchNewsByTags(search, fetchedResults) {
 		try {
-			let results = {}
-			const searchArr = search.split(", ")
-
-			await Promise.all(
-				// loop through the search words
-				searchArr.map(async s => {
-					// find all news that contain a specific word in the tags
-					const news = await News.findAll({
-						where: {
-							tags: { [Op.substring]: s },
-						},
-					})
-
-					// map those news in a key-value pair, where key is the id of the news and value is an object containing the news and the number of matches
-					news.forEach(data => {
-						if (results[data.id]) {
-							results[data.id].matches += 1
-						} else {
-							results[data.id] = {
-								result: data,
-								matches: 1,
-							}
-						}
-					})
-				})
-			)
-
-			// get the keys of the results map
-			const keys = Object.keys(results)
-
-			// map the results into an array with the matches prop turned into a percentage
-			const finalResult = keys.map(key => {
-				results[key].matches = Math.floor(
-					(results[key].matches / searchArr.length) * 100
-				)
-
-				return results[key]
+			const news = await News.findAll({
+				limit: dataToFetch,
+				offset: fetchedResults,
+				where: Sequelize.literal("MATCH (tags) AGAINST (:search)"),
+				replacements: {
+					search: search,
+				},
 			})
 
-			// sort the results by matches percentage
-			return finalResult.sort(
-				(result1, result2) => result2.matches - result1.matches
-			)
+			return news.map(n => ({ result: n }))
 		} catch (error) {
 			throw new GenericError("searchNewsByTags", error)
 		}
