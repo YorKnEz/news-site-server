@@ -8,22 +8,27 @@ const {
 const {
 	dataToFetch,
 	evaluateImageLink,
-	handleError,
 	handleMutationError,
+	GenericError,
 } = require("../utils")
 
 const typeDefs = gql`
 	type Query {
 		"Query to get news array for the home page"
-		newsForHome(oldestId: ID!): [News!]!
+		newsForHome(oldestId: ID!, sortBy: String!, followed: Boolean): [News!]!
 		"Query to get reddit news array for the home page"
 		newsForHomeReddit(after: String): NewsForHomeRedditResponse!
 		"Gets all the news of a specific author"
 		newsForProfile(oldestId: ID!, id: ID!): [News!]
 		"Gets a news by id"
 		news(id: ID!): News!
-		"Gets the liked news by a user"
-		likedNews(offset: Int): [News!]
+		"News to display on an author's profile card"
+		newsForProfileCard(
+			id: ID
+			newsId: ID
+			howManyBest: Int!
+			howManyRecent: Int!
+		): NewsForProfiledCardResponse
 	}
 
 	type Mutation {
@@ -32,15 +37,7 @@ const typeDefs = gql`
 		"Updates existing news in the db based on input"
 		updateNews(newsData: NewsInput!, id: ID!): UpdateNewsResponse!
 		"Deletes a news by id"
-		deleteNews(id: ID!): DeleteNewsResponse!
-
-		"Toggle vote news. Action can be either 'like' or 'dislike'"
-		voteNews(action: String!, id: ID!): VoteNewsResponse!
-		"Increase or decrease the comments counter of a news"
-		updateCommentsCounter(
-			action: String!
-			id: ID!
-		): UpdateCommentsCounterResposne!
+		deleteNews(id: ID): DeleteNewsResponse!
 	}
 
 	input NewsInput {
@@ -51,6 +48,16 @@ const typeDefs = gql`
 		body: String!
 	}
 
+	type NewsForHomeRedditResponse {
+		after: String
+		news: [News!]
+	}
+
+	type NewsForProfiledCardResponse {
+		best: [News!]
+		recent: [News!]
+	}
+
 	type CreateNewsResponse {
 		"Similar to HTTP status code, represents the status of the mutation"
 		code: Int!
@@ -59,7 +66,7 @@ const typeDefs = gql`
 		"Human-readable message for the UI"
 		message: String!
 		"The id of the news that has been created"
-		id: ID
+		id: ID!
 	}
 
 	type UpdateNewsResponse {
@@ -80,35 +87,6 @@ const typeDefs = gql`
 		message: String!
 	}
 
-	type VoteNewsResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of likes"
-		likes: Int!
-		"Updated number of dislikes"
-		dislikes: Int!
-	}
-
-	type UpdateCommentsCounterResposne {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of comments"
-		comments: Int!
-	}
-
-	type NewsForHomeRedditResponse {
-		after: String
-		news: [News!]
-	}
-
 	"This is the structure of a news"
 	type News {
 		id: ID!
@@ -125,34 +103,70 @@ const typeDefs = gql`
 		"The tags of the news, that help for better searching"
 		tags: String
 		"The body of the news"
-		body: String
+		body: String!
 		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site)"
 		type: String!
 		"The creation date of the news"
 		createdAt: String!
-		"The last time the news was edited"
-		updatedAt: String!
 		"Wether the user already voted the news. Can be 'like', 'dislike' or 'none'"
 		voteState: String!
 		"The number of likes the post has"
 		likes: Int!
 		"The number of dislikes the post has"
 		dislikes: Int!
+		"The score of the news. The score is the difference between likes and dislikes."
+		score: Int!
 		"The number of comments"
-		comments: Int
+		replies: Int
+		"Wether the news has been saved or not. Can be either 'save', 'unsave'"
+		saveState: String!
+		"The link of the news, formatted."
+		link: String
+	}
+
+	type NewsShort {
+		id: ID!
+		"The news' title"
+		title: String!
+		"The creator of the news"
+		author: AuthorShort!
+		"The type of the news: either 'reddit'(if it's from reddit) or 'created'(if it's from news-site)"
+		type: String!
+		"The link of the news, formatted."
+		link: String
 	}
 `
 
 const resolvers = {
 	Query: {
 		// returns an array of news created on the site that will be used to populate the homepage
-		newsForHome: async (_, { oldestId }, { dataSources }) => {
+		newsForHome: async (
+			_,
+			{ oldestId, sortBy, followed },
+			{ dataSources, token, userId }
+		) => {
 			try {
-				const news = await dataSources.newsAPI.getNews(oldestId, dataToFetch)
+				if (followed && !token)
+					throw new AuthenticationError("You must be authenticated to do this.")
 
-				return news
+				switch (sortBy) {
+					case "date":
+						return dataSources.newsAPI.getNewsByDate(
+							oldestId,
+							followed ? userId : null,
+							dataToFetch
+						)
+					case "score":
+						return dataSources.newsAPI.getNewsByScore(
+							oldestId,
+							followed ? userId : null,
+							dataToFetch
+						)
+					default:
+						return null
+				}
 			} catch (error) {
-				return handleError("newsForHome", error)
+				throw new GenericError("newsForHome", error)
 			}
 		},
 		// returns an array of news created on the site that will be used to populate the homepage
@@ -162,18 +176,13 @@ const resolvers = {
 				const { newAfter, fetchedNews } =
 					await dataSources.redditAPI.getNewsFromRomania(after, dataToFetch)
 
-				// add the newly fetched reddit news to the database
-				const response = await dataSources.newsAPI.addNewsFromReddit(
-					fetchedNews
-				)
-
 				// return the news and the offset for the next news
 				return {
-					news: response,
+					news: await dataSources.newsAPI.addNewsFromReddit(fetchedNews),
 					after: newAfter,
 				}
 			} catch (error) {
-				return handleError("newsForHomeReddit", error)
+				throw new GenericError("newsForHomeReddit", error)
 			}
 		},
 		// returns an array of news of a certain author to display on his profile
@@ -182,41 +191,46 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const news = await dataSources.newsAPI.getAuthorNews(
-					oldestId,
-					id,
-					dataToFetch
-				)
-
-				return news
+				return dataSources.newsAPI.getAuthorNews(oldestId, id, dataToFetch)
 			} catch (error) {
-				return handleError("newsForProfile", error)
+				throw new GenericError("newsForProfile", error)
 			}
 		},
 		// returns a unique news with the specified id
 		news: async (_, { id }, { dataSources }) => {
 			try {
-				const news = await dataSources.newsAPI.getNewsById(id)
-
-				return news
+				return dataSources.newsAPI.getNewsById(id)
 			} catch (error) {
-				return handleError("news", error)
+				// return handleError("news", error)
+				throw new GenericError("news", error)
 			}
 		},
-		likedNews: async (_, { offset }, { dataSources, token, userId }) => {
+		newsForProfileCard: async (
+			_,
+			{ id, newsId, howManyBest, howManyRecent },
+			{ dataSources, token }
+		) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const news = await dataSources.newsAPI.getLikedNews(
-					offset,
-					userId,
-					dataToFetch
-				)
+				if (newsId) {
+					const { authorId } = await dataSources.newsAPI.getNewsById(newsId)
 
-				return news
+					return dataSources.newsAPI.getNewsForProfileCard(
+						authorId,
+						howManyBest,
+						howManyRecent
+					)
+				}
+
+				return dataSources.newsAPI.getNewsForProfileCard(
+					id,
+					howManyBest,
+					howManyRecent
+				)
 			} catch (error) {
-				return handleError("likedNews", error)
+				throw new GenericError("newsForProfileCard", error)
 			}
 		},
 	},
@@ -238,16 +252,17 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const newsId = await dataSources.newsAPI.createNews(newsData, userId)
-
 				return {
 					code: 200,
 					success: true,
 					message: "The news has been successfully created",
-					id: newsId,
+					id: await dataSources.newsAPI.createNews(newsData, userId),
 				}
 			} catch (error) {
-				return handleMutationError("createNews", error)
+				return {
+					...handleMutationError("createNews", error),
+					id: 0,
+				}
 			}
 		},
 		updateNews: async (
@@ -268,17 +283,12 @@ const resolvers = {
 					)
 
 				// handle news update
-				const updatedNews = await dataSources.newsAPI.updateNews(
-					newsData,
-					id,
-					userId
-				)
+				await dataSources.newsAPI.updateNews(newsData, id, userId)
 
 				return {
 					code: 200,
 					success: true,
 					message: "The news has been successfully updated",
-					news: updatedNews,
 				}
 			} catch (error) {
 				return handleMutationError("updateNews", error)
@@ -313,53 +323,6 @@ const resolvers = {
 				return handleMutationError("deleteNews", error)
 			}
 		},
-		voteNews: async (_, { action, id }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				if (action === "like" || action === "dislike") {
-					const response = await dataSources.newsAPI.voteNews(
-						action,
-						id,
-						userId
-					)
-
-					return {
-						code: 200,
-						success: true,
-						message: response.message,
-						likes: response.likes,
-						dislikes: response.dislikes,
-					}
-				} else {
-					throw new UserInputError("Invalid action.")
-				}
-			} catch (error) {
-				return handleMutationError("voteNews", error)
-			}
-		},
-		updateCommentsCounter: async (
-			_,
-			{ action, id },
-			{ dataSources, token }
-		) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				const comments = dataSources.newsAPI.updateCommentsCounter(action, id)
-
-				return {
-					code: 200,
-					success: true,
-					message: "Updated counter successfully",
-					comments,
-				}
-			} catch (error) {
-				return handleMutationError("updateCommentsCounter", error)
-			}
-		},
 	},
 	News: {
 		author: async ({ authorId, type }, _, { dataSources }) => {
@@ -382,29 +345,67 @@ const resolvers = {
 
 						break
 					case "created":
-						const author = await dataSources.userAPI.getAuthorById(authorId)
+						returnData = dataSources.userAPI.getAuthorById(authorId)
 
+						break
+					case "[deleted]":
 						returnData = {
-							id: author.id,
-							fullName: author.fullName,
-							profilePicture: author.profilePicture,
+							id: "[deleted]",
+							fullName: "[deleted]",
+							profilePicture: "default",
 						}
-
 						break
 				}
 
 				return returnData
 			} catch (error) {
-				return handleError("author", error)
+				throw new GenericError("author", error)
 			}
 		},
 		voteState: async ({ id }, _, { dataSources, userId }) => {
 			try {
-				if (userId) return dataSources.newsAPI.getVoteState(id, "news", userId)
+				if (userId)
+					return dataSources.commonAPI.getVoteState(id, "news", userId)
 
 				return "none"
 			} catch (error) {
-				return handleError("voteState", error)
+				throw new GenericError("voteState", error)
+			}
+		},
+		saveState: async ({ id }, _, { dataSources, userId }) => {
+			try {
+				if (userId)
+					return dataSources.commonAPI.getSaveState(id, "news", userId)
+
+				return "unsave"
+			} catch (error) {
+				throw new GenericError("saveState", error)
+			}
+		},
+	},
+	NewsShort: {
+		author: async ({ authorId, type }, _, { dataSources }) => {
+			try {
+				let returnData
+
+				// available types: "reddit", "created"
+				switch (type) {
+					case "created":
+						returnData = dataSources.userAPI.getAuthorById(authorId)
+
+						break
+					case "[deleted]":
+						returnData = {
+							id: "[deleted]",
+							fullName: "[deleted]",
+							profilePicture: "default",
+						}
+						break
+				}
+
+				return returnData
+			} catch (error) {
+				throw new GenericError("author", error)
 			}
 		},
 	},

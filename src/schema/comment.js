@@ -1,13 +1,17 @@
 const { gql, AuthenticationError, ForbiddenError } = require("apollo-server")
 
-const { dataToFetch, handleError, handleMutationError } = require("../utils")
+const { dataToFetch, handleMutationError, GenericError } = require("../utils")
 
 const typeDefs = gql`
 	type Query {
 		"Gets comments of a certain post"
-		commentsForNews(oldestCommentDate: String!, newsId: ID!): [Comment!]
+		commentsForNews(oldestId: ID!, newsId: ID!, sortBy: String!): [Comment!]
 		"Gets replies of a certain comment"
-		commentReplies(oldestCommentDate: String!, commentId: ID!): [Comment!]
+		commentReplies(oldestId: ID!, commentId: ID!, sortBy: String!): [Comment!]
+		"Gets a comment by id"
+		commentById(commentId: ID!): Comment!
+		"Gets the d of the nth parent of the comment, required for paginaton"
+		commentNthParentId(depth: Int!, commentId: ID!): ID!
 	}
 
 	type Mutation {
@@ -17,17 +21,10 @@ const typeDefs = gql`
 		editComment(commentData: CommentInput!, id: ID!): CommentResponse!
 		"Remove a comment"
 		removeComment(id: ID!): CommentResponse!
-
-		"Toggle vote comment. Action can be either 'like' or 'dislike'"
-		voteComment(action: String!, id: ID!): VoteCommentResponse!
-		"Increase or decrease the replies counter of a comment"
-		updateRepliesCounter(
-			action: String!
-			id: ID!
-		): UpdateRepliesCounterResponse!
 	}
 
 	input CommentInput {
+		newsId: ID!
 		parentId: ID!
 		parentType: String!
 		body: String!
@@ -42,30 +39,6 @@ const typeDefs = gql`
 		message: String!
 		"The comment"
 		comment: Comment
-	}
-
-	type VoteCommentResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of likes"
-		likes: Int!
-		"Updated number of dislikes"
-		dislikes: Int!
-	}
-
-	type UpdateRepliesCounterResponse {
-		"Similar to HTTP status code, represents the status of the mutation"
-		code: Int!
-		"Indicated whether the mutation was successful"
-		success: Boolean!
-		"Human-readable message for the UI"
-		message: String!
-		"Updated number of replies"
-		replies: Int!
 	}
 
 	type Comment {
@@ -84,10 +57,14 @@ const typeDefs = gql`
 		likes: Int!
 		"The number of dislikes of the comment"
 		dislikes: Int!
+		"The score of the news. The score is the difference between likes and dislikes."
+		score: Int!
 		"The date when the comment was created"
 		createdAt: String!
 		"The number of replies"
 		replies: Int
+		"Wether the comment has been saved or not. Can be either 'save', 'unsave'"
+		saveState: String!
 	}
 `
 
@@ -95,38 +72,74 @@ const resolvers = {
 	Query: {
 		commentsForNews: async (
 			_,
-			{ newsId, oldestCommentDate },
+			{ newsId, oldestId, sortBy },
 			{ dataSources }
 		) => {
 			try {
-				const comments = await dataSources.commentAPI.getComments(
-					oldestCommentDate,
-					newsId,
-					"news",
-					dataToFetch
-				)
+				if (sortBy === "date") {
+					return dataSources.commentAPI.getCommentsByDate(
+						oldestId,
+						newsId,
+						"news",
+						dataToFetch
+					)
+				}
 
-				return comments
+				if (sortBy === "score") {
+					return dataSources.commentAPI.getCommentsByScore(
+						oldestId,
+						newsId,
+						"news",
+						dataToFetch
+					)
+				}
+
+				return null
 			} catch (error) {
-				return handleError("commentForNews", error)
+				throw new GenericError("commentForNews", error)
 			}
 		},
 		commentReplies: async (
 			_,
-			{ commentId, oldestCommentDate },
+			{ commentId, oldestId, sortBy },
 			{ dataSources }
 		) => {
 			try {
-				const comments = await dataSources.commentAPI.getComments(
-					oldestCommentDate,
-					commentId,
-					"comment",
-					dataToFetch
-				)
+				if (sortBy === "date") {
+					return dataSources.commentAPI.getCommentsByDate(
+						oldestId,
+						commentId,
+						"comment",
+						dataToFetch
+					)
+				}
 
-				return comments
+				if (sortBy === "score") {
+					return dataSources.commentAPI.getCommentsByScore(
+						oldestId,
+						commentId,
+						"comment",
+						dataToFetch
+					)
+				}
+
+				return null
 			} catch (error) {
-				return handleError("commentForNews", error)
+				throw new GenericError("commentReplies", error)
+			}
+		},
+		commentById: async (_, { commentId }, { dataSources }) => {
+			try {
+				return dataSources.commentAPI.getCommentById(commentId)
+			} catch (error) {
+				throw new GenericError("commentById", error)
+			}
+		},
+		commentNthParentId: async (_, { depth, commentId }, { dataSources }) => {
+			try {
+				return dataSources.commentAPI.getNthParentId(depth, commentId)
+			} catch (error) {
+				throw new GenericError("commentNthParent", error)
 			}
 		},
 	},
@@ -145,16 +158,11 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const comment = await dataSources.commentAPI.addComment(
-					commentData,
-					userId
-				)
-
 				return {
 					code: 200,
 					success: true,
 					message: "Added comment successfully.",
-					comment,
+					comment: await dataSources.commentAPI.addComment(commentData, userId),
 				}
 			} catch (error) {
 				return handleMutationError("addComment", error)
@@ -174,20 +182,18 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const comment = await dataSources.commentAPI.editComment(
-					commentData,
-					userId,
-					id
-				)
-
 				return {
 					code: 200,
 					success: true,
 					message: "Edited comment successfully.",
-					comment,
+					comment: await dataSources.commentAPI.editComment(
+						commentData,
+						userId,
+						id
+					),
 				}
 			} catch (error) {
-				return handleMutationError("updateComment", error)
+				return handleMutationError("editComment", error)
 			}
 		},
 		removeComment: async (
@@ -204,66 +210,21 @@ const resolvers = {
 						"You must verify your email to perform this action."
 					)
 
-				const comment = await dataSources.commentAPI.removeComment(id, userId)
-
 				return {
 					code: 200,
 					success: true,
 					message: "Removed comment successfully.",
-					comment,
+					comment: await dataSources.commentAPI.removeComment(id, userId),
 				}
 			} catch (error) {
 				return handleMutationError("removeComment", error)
-			}
-		},
-		voteComment: async (_, { action, id }, { dataSources, token, userId }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				if (action === "like" || action === "dislike") {
-					const response = await dataSources.commentAPI.voteComment(
-						action,
-						id,
-						userId
-					)
-
-					return {
-						code: 200,
-						success: true,
-						message: response.message,
-						likes: response.likes,
-						dislikes: response.dislikes,
-					}
-				} else {
-					throw new UserInputError("Invalid action.")
-				}
-			} catch (error) {
-				return handleMutationError("voteNews", error)
-			}
-		},
-		updateRepliesCounter: async (_, { action, id }, { dataSources, token }) => {
-			try {
-				if (!token)
-					throw new AuthenticationError("You must be authenticated to do this.")
-
-				const replies = dataSources.commentAPI.updateRepliesCounter(action, id)
-
-				return {
-					code: 200,
-					success: true,
-					message: "Updated counter successfully",
-					replies,
-				}
-			} catch (error) {
-				return handleMutationError("updateRepliesCounter", error)
 			}
 		},
 	},
 	Comment: {
 		author: async ({ body, UserId }, _, { dataSources }) => {
 			try {
-				if (body === "[deleted]") {
+				if (body === "<p>[deleted]</p>") {
 					return {
 						id: "[deleted]",
 						fullName: "[deleted]",
@@ -271,25 +232,29 @@ const resolvers = {
 					}
 				}
 
-				const user = await dataSources.userAPI.getUserById(UserId)
-
-				return {
-					id: user.id,
-					fullName: user.fullName,
-					profilePicture: user.profilePicture,
-				}
+				return dataSources.userAPI.getUserById(UserId)
 			} catch (error) {
-				return handleError("author", error)
+				throw new GenericError("author", error)
 			}
 		},
 		voteState: async ({ id }, _, { dataSources, userId }) => {
 			try {
 				if (userId)
-					return dataSources.newsAPI.getVoteState(id, "comment", userId)
+					return dataSources.commonAPI.getVoteState(id, "comment", userId)
 
 				return "none"
 			} catch (error) {
-				return handleError("voteState", error)
+				throw new GenericError("voteState", error)
+			}
+		},
+		saveState: async ({ id }, _, { dataSources, userId }) => {
+			try {
+				if (userId)
+					return dataSources.commonAPI.getSaveState(id, "comment", userId)
+
+				return "unsave"
+			} catch (error) {
+				throw new GenericError("saveState", error)
 			}
 		},
 	},

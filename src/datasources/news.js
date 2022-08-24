@@ -1,10 +1,10 @@
 const { DataSource } = require("apollo-datasource")
 const { ForbiddenError, UserInputError } = require("apollo-server")
 const fs = require("fs")
-const { Op } = require("sequelize")
+const { Op, Sequelize } = require("sequelize")
 
-const { News, User, UserVote } = require("../database")
-const { formatTitle, handleError } = require("../utils")
+const { News, User, UserFollow } = require("../database")
+const { formatTitle, GenericError, dataToFetch } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
 const ip = process.env.EXPRESS_SERVER_IP
@@ -15,7 +15,7 @@ class NewsAPI extends DataSource {
 	}
 	// retrieve [newsToFetch] news based on the oldest fetched news id
 
-	async getNews(oldestId, dataToFetch) {
+	async getNewsByDate(oldestId, userId, dataToFetch) {
 		try {
 			// find the oldest news
 			const oldestNews = await News.findOne({
@@ -23,78 +23,96 @@ class NewsAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest news
-			const options = {}
-
-			if (oldestNews) {
-				options.createdAt = { [Op.lte]: oldestNews.createdAt }
-
-				options.id = { [Op.lt]: oldestId }
+			const options = {
+				limit: dataToFetch,
+				where: { type: "created" },
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 			}
 
-			options.type = "created"
+			if (oldestNews) {
+				options.where.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.where.id = { [Op.lt]: oldestId }
+			}
+
+			if (userId) {
+				const followedAuthors = await UserFollow.findAll({
+					where: { UserId: userId },
+				})
+
+				const authorIds = followedAuthors.map(a => a.authorId)
+
+				options.where.authorId = { [Op.in]: authorIds }
+			}
 
 			// get the news
-			const news = await News.findAll({
-				limit: dataToFetch,
-				where: options,
-				order: [
-					["createdAt", "DESC"],
-					["id", "DESC"],
-				],
-			})
-
-			return news
+			return News.findAll(options)
 		} catch (error) {
-			return handleError("getNews", error)
+			throw new GenericError("getNewsByDate", error)
 		}
 	}
 
-	// retrieve [dataToFetch] liked news based on an offset
-	async getLikedNews(offset, userId, dataToFetch) {
+	async getNewsByScore(oldestId, userId, dataToFetch) {
 		try {
-			// retrieve all the ids of the liked news
-			const likedNewsIds = await UserVote.findAll({
-				offset,
+			// find the oldest news
+			let oldestNews = await News.findOne({
+				where: { id: oldestId },
+			})
+
+			// add the additional options if there is an oldest news
+			let options = {
 				limit: dataToFetch,
-				where: {
-					UserId: userId,
-					type: "like",
-				},
+				where: { type: "created" },
 				order: [
+					["score", "DESC"],
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
-			})
+			}
 
-			// get all the news based on the ids
-			const news = await Promise.all(
-				likedNewsIds.map(async ({ parentId }) => {
-					const newsById = await News.findOne({ where: { id: parentId } })
+			if (oldestNews) {
+				options.where.score = { [Op.eq]: oldestNews.score }
+				options.where.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.where.id = { [Op.not]: oldestNews.id }
+			}
 
-					return newsById
+			if (userId) {
+				const followedAuthors = await UserFollow.findAll({
+					where: { UserId: userId },
 				})
-			)
+
+				const authorIds = followedAuthors.map(a => a.authorId)
+
+				options.where.authorId = { [Op.in]: authorIds }
+			}
+
+			const news = await News.findAll(options)
+
+			// if the fetched news are less that the max, try to fetch more
+			if (news.length < dataToFetch) {
+				// the oldestNews becomes the last fetched news by the query above or remains the same
+				oldestNews = news.length > 0 ? news[news.length - 1] : oldestNews
+
+				options.limit = dataToFetch - news.length
+				options.where = {
+					type: options.where.type,
+					authorId: options.where.authorId,
+				}
+
+				if (oldestNews) {
+					options.where.score = { [Op.lt]: oldestNews.score }
+				}
+
+				const restOfNews = await News.findAll(options)
+
+				return [...news, ...restOfNews]
+			}
 
 			return news
 		} catch (error) {
-			return handleError("getNews", error)
-		}
-	}
-
-	// retrieve one news with the id passed
-	async getNewsById(newsId) {
-		try {
-			const news = await News.findOne({
-				where: {
-					id: newsId,
-				},
-			})
-
-			if (!news) throw "News not in our database"
-
-			return news
-		} catch (error) {
-			return handleError("getNewsById", error)
+			throw new GenericError("getNewsByScore", error)
 		}
 	}
 
@@ -113,21 +131,62 @@ class NewsAPI extends DataSource {
 			})
 
 			// add the additional options if there is an oldest news
-			const options = oldestNews && {
-				createdAt: {
-					[Op.lte]: oldestNews.createdAt,
-				},
-				id: {
-					[Op.lt]: oldestId,
-				},
-				type,
+			const options = {
+				limit: dataToFetch,
+				where: { type: "created", authorId: author.id },
+				order: [
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
 			}
 
-			const news = await News.findAll({
-				limit: dataToFetch,
+			if (oldestNews) {
+				options.where.createdAt = { [Op.lte]: oldestNews.createdAt }
+				options.where.id = { [Op.lt]: oldestId }
+			}
+
+			return News.findAll(options)
+		} catch (error) {
+			throw new GenericError("getAuthorNews", error)
+		}
+	}
+
+	// retrieve one news with the id passed
+	async getNewsById(newsId) {
+		try {
+			const news = await News.findOne({
 				where: {
-					...options,
-					authorId: author.id,
+					id: newsId,
+				},
+			})
+
+			if (!news) throw new GenericError("News not in our database")
+
+			return news
+		} catch (error) {
+			throw new GenericError("getNewsById", error)
+		}
+	}
+
+	// retrieve 2 of the best news and the most recent one of a certain author
+	async getNewsForProfileCard(authorId, howManyBest, howManyRecent) {
+		try {
+			const bestNews = await News.findAll({
+				limit: howManyBest,
+				where: {
+					authorId,
+				},
+				order: [
+					["score", "DESC"],
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			})
+
+			const mostRecentNews = await News.findAll({
+				limit: howManyRecent,
+				where: {
+					authorId,
 				},
 				order: [
 					["createdAt", "DESC"],
@@ -135,9 +194,9 @@ class NewsAPI extends DataSource {
 				],
 			})
 
-			return news
+			return { best: bestNews, recent: mostRecentNews }
 		} catch (error) {
-			return handleError("getAuthorNews", error)
+			throw new GenericError("getNewsForProfileCard", error)
 		}
 	}
 
@@ -146,156 +205,84 @@ class NewsAPI extends DataSource {
 	async addNewsFromReddit(newsData) {
 		try {
 			// map through the news
-			const news = newsData.map(async ({ data }) => {
-				// try to find if the current news has already been added
-				const news = await News.findOne({
-					where: { redditId: data.id },
+			return Promise.all(
+				newsData.map(async ({ data }) => {
+					// try to find if the current news has already been added
+					const news = await News.findOne({
+						where: { redditId: data.id },
+					})
+
+					// if the news exists, return it
+					if (news) return news
+
+					// if it doesn't exist, create it and return it
+					return News.create({
+						redditId: data.id,
+						title: formatTitle(data.title),
+						authorId: data.author,
+						createdAt: data.created * 1000,
+						thumbnail: "",
+						subreddit: data.subreddit_name_prefixed,
+						sources: "https://www.reddit.com" + data.permalink,
+						body: data.selftext ? data.selftext : "",
+						type: "reddit",
+					})
 				})
-
-				// if the news exists, return it
-				if (news) return news.toJSON()
-
-				// if it doesn't exist, create it
-				const newsObject = await News.create({
-					redditId: data.id,
-					title: formatTitle(data.title),
-					authorId: data.author,
-					createdAt: data.created * 1000,
-					thumbnail: "",
-					subreddit: data.subreddit_name_prefixed,
-					sources: "https://www.reddit.com" + data.permalink,
-					body: "",
-					type: "reddit",
-				})
-
-				// and return it
-				return newsObject.toJSON()
-			})
-
-			return Promise.all(news)
+			)
 		} catch (error) {
-			return handleError("addNewsFromReddit", error)
+			throw new GenericError("addNewsFromReddit", error)
 		}
 	}
 
-	async searchNewsByTitle(search) {
+	async searchNewsByTitle(search, fetchedResults) {
 		try {
-			let results = {}
-			const searchArr = search.split(" ")
-
-			await Promise.all(
-				// loop through the search words
-				searchArr.map(async s => {
-					// find all news that contain a specific word in the title
-					const news = await News.findAll({
-						where: {
-							title: { [Op.substring]: s },
-						},
-					})
-
-					// map those news in a key-value pair, where key is the id of the news and value is an object containing the news and the number of matches
-					news.forEach(data => {
-						if (results[data.id]) {
-							results[data.id].matches += 1
-						} else {
-							results[data.id] = {
-								news: data.toJSON(),
-								matches: 1,
-							}
-						}
-					})
-				})
-			)
-
-			// get the keys of the results map
-			const keys = Object.keys(results)
-
-			// map the results into an array with the matches prop turned into a percentage
-			const finalResult = keys.map(key => {
-				results[key].matches = Math.floor(
-					(results[key].matches / searchArr.length) * 100
-				)
-
-				return results[key]
+			const news = await News.findAll({
+				limit: dataToFetch,
+				offset: fetchedResults,
+				where: Sequelize.literal("MATCH (title) AGAINST (:search)"),
+				replacements: {
+					search: search,
+				},
 			})
 
-			// sort the results by matches percentage
-			results = finalResult.sort(
-				(result1, result2) => result2.matches - result1.matches
-			)
-
-			return results
+			return news.map(n => ({ result: n }))
 		} catch (error) {
-			return handleError("searchNewsByTitle", error)
+			throw new GenericError("searchNewsByTitle", error)
 		}
 	}
 
 	// for efficiency reasons (lol), the search string must be an exact match of the content of the news, otherwise it won't find anything
-	async searchNewsByBody(search) {
+	async searchNewsByBody(search, fetchedResults) {
 		try {
 			const news = await News.findAll({
-				where: {
-					body: { [Op.substring]: search },
+				limit: dataToFetch,
+				offset: fetchedResults,
+				where: Sequelize.literal("MATCH (body) AGAINST (:search)"),
+				replacements: {
+					search: search,
 				},
 			})
 
-			return news.map(n => ({
-				news: n.toJSON(),
-			}))
+			return news.map(n => ({ result: n }))
 		} catch (error) {
-			return handleError("searchNewsByBody", error)
+			throw new GenericError("searchNewsByBody", error)
 		}
 	}
 
-	async searchNewsByTags(search) {
+	async searchNewsByTags(search, fetchedResults) {
 		try {
-			let results = {}
-			const searchArr = search.split(", ")
-
-			await Promise.all(
-				// loop through the search words
-				searchArr.map(async s => {
-					// find all news that contain a specific word in the tags
-					const news = await News.findAll({
-						where: {
-							tags: { [Op.substring]: s },
-						},
-					})
-
-					// map those news in a key-value pair, where key is the id of the news and value is an object containing the news and the number of matches
-					news.forEach(data => {
-						if (results[data.id]) {
-							results[data.id].matches += 1
-						} else {
-							results[data.id] = {
-								news: data.toJSON(),
-								matches: 1,
-							}
-						}
-					})
-				})
-			)
-
-			// get the keys of the results map
-			const keys = Object.keys(results)
-
-			// map the results into an array with the matches prop turned into a percentage
-			const finalResult = keys.map(key => {
-				results[key].matches = Math.floor(
-					(results[key].matches / searchArr.length) * 100
-				)
-
-				return results[key]
+			const news = await News.findAll({
+				limit: dataToFetch,
+				offset: fetchedResults,
+				where: Sequelize.literal("MATCH (tags) AGAINST (:search)"),
+				replacements: {
+					search: search,
+				},
 			})
 
-			// sort the results by matches percentage
-			results = finalResult.sort(
-				(result1, result2) => result2.matches - result1.matches
-			)
-
-			return results
+			return news.map(n => ({ result: n }))
 		} catch (error) {
-			return handleError("searchNewsByTags", error)
+			throw new GenericError("searchNewsByTags", error)
 		}
 	}
 
@@ -317,6 +304,7 @@ class NewsAPI extends DataSource {
 				tags: newsData.tags,
 				body: newsData.body,
 				type: "created",
+				link: newsData.title.replace(/(\W+)/g, "-").toLowerCase(),
 			})
 
 			// increment the users writtenNews
@@ -330,7 +318,7 @@ class NewsAPI extends DataSource {
 			// return the id of the news
 			return news.id
 		} catch (error) {
-			return handleError("createNews", error)
+			throw new GenericError("createNews", error)
 		}
 	}
 
@@ -354,7 +342,7 @@ class NewsAPI extends DataSource {
 				throw new ForbiddenError("You are not the author of this news.")
 
 			// delete the old thumbnail from the server if there is a new one
-			if (newsData.thumbnail) {
+			if (newsData.thumbnail && news.thumbnail) {
 				const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
 
 				// delete the thumbnail from the server
@@ -372,6 +360,7 @@ class NewsAPI extends DataSource {
 				tags: newsData.tags,
 				body: newsData.body,
 				type: "created",
+				link: newsData.title.replace(/(\W+)/g, "-").toLowerCase(),
 			})
 
 			// save changes
@@ -380,7 +369,7 @@ class NewsAPI extends DataSource {
 			// return the updated news
 			return news
 		} catch (error) {
-			return handleError("updateNews", error)
+			throw new GenericError("updateNews", error)
 		}
 	}
 
@@ -405,15 +394,24 @@ class NewsAPI extends DataSource {
 			if (news.authorId != userId)
 				throw new ForbiddenError("You are not the author of this news.")
 
-			const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
+			if (news.thumbnail) {
+				const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
 
-			// delete the thumbnail from the server
-			fs.unlink(`./public/${thumbnail}`, err => {
-				if (err) console.log(err)
-			})
+				// delete the thumbnail from the server
+				fs.unlink(`./public/${thumbnail}`, err => {
+					if (err) console.log(err)
+				})
+			}
 
 			// delete the news
-			await news.destroy()
+			await news.update({
+				title: "[deleted]",
+				authorId: "-1",
+				sources: "[deleted]",
+				tags: "[deleted]",
+				body: "<p>[deleted]</p>",
+				type: "[deleted]",
+			})
 
 			// update the number of written news of the user
 			await user.update({
@@ -423,162 +421,7 @@ class NewsAPI extends DataSource {
 			// save the changes
 			await user.save()
 		} catch (error) {
-			return handleError("deleteNews", error)
-		}
-	}
-
-	// method for liking or disliking news based on the action type and the ids of the news and the user
-	// action - 'like' or 'dislike'
-	async voteNews(action, newsId, userId) {
-		try {
-			/*
-				propName - if the user wants to like the news, we update propName of news
-				propName2 - if the user wants to like the news, but he already disliked it, we update propName and propName2 of news
-				message1 - message to display if the user removed the like successfully
-				message2 - message to display if the user liked the news successfully
-			*/
-			const options = {
-				like: {
-					propName: "likes",
-					propName2: "dislikes",
-					message1: "News like removed",
-					message2: "News liked",
-				},
-				dislike: {
-					propName: "dislikes",
-					propName2: "likes",
-					message1: "News dislike removed",
-					message2: "News disliked",
-				},
-			}
-
-			// first check if the news exists
-			const news = await News.findOne({ where: { id: newsId } })
-
-			// if the news doesn't exist, throw an error
-			if (!news) throw new UserInputError("Invalid id.")
-
-			// try to find if the user already liked the news
-			const link1 = await UserVote.findOne({
-				where: {
-					parentId: newsId,
-					parentType: "news",
-					UserId: userId,
-					type: action,
-				},
-			})
-
-			// if he already liked the news, remove the like
-			if (link1) {
-				// remove the link
-				await link1.destroy()
-
-				// update likes counter
-				await news.update({
-					[options[action].propName]: news[options[action].propName] - 1,
-				})
-
-				// save changes
-				await news.save()
-
-				// return message
-				return {
-					message: options[action].message1,
-					likes: news.likes,
-					dislikes: news.dislikes,
-				}
-			}
-
-			// try to find if the user disliked the news
-			const link2 = await UserVote.findOne({
-				where: {
-					parentId: newsId,
-					parentType: "news",
-					UserId: userId,
-					type: action === "like" ? "dislike" : "like",
-				},
-			})
-
-			// if he already disliked the news, remove the dislike in order to add the like
-			if (link2) {
-				// remove the link
-				link2.destroy()
-
-				// update dislikes counter
-				await news.update({
-					[options[action].propName2]: news[options[action].propName2] - 1,
-				})
-
-				// save changes
-				await news.save()
-			}
-
-			// create the link between the user and the news
-			await UserVote.create({
-				UserId: userId,
-				parentId: newsId,
-				parentType: "news",
-				type: action,
-			})
-
-			// update likes counter
-			await news.update({
-				[options[action].propName]: news[options[action].propName] + 1,
-			})
-
-			// save changes
-			await news.save()
-
-			return {
-				message: options[action].message2,
-				likes: news.likes,
-				dislikes: news.dislikes,
-			}
-		} catch (error) {
-			return handleError("voteNews", error)
-		}
-	}
-
-	async getVoteState(parentId, parentType, userId) {
-		try {
-			// find if the user liked or disliked the news
-			const link = await UserVote.findOne({
-				where: {
-					UserId: userId,
-					parentId,
-					parentType,
-					type: { [Op.or]: ["like", "dislike"] },
-				},
-			})
-
-			if (!link) return "none"
-
-			return link.type
-		} catch (error) {
-			return handleError("voteState", error)
-		}
-	}
-
-	// update the comments counter of the news
-	async updateCommentsCounter(action, newsId) {
-		try {
-			// get the news
-			const news = await News.findOne({
-				where: { id: newsId },
-			})
-
-			// if the news is not found, throw an error
-			if (!news) throw new UserInputError("Invalid input.")
-
-			if (action === "up") await news.update({ comments: news.comments + 1 })
-
-			if (action === "down") await news.update({ comments: news.comments - 1 })
-
-			await news.save()
-
-			return news.comments
-		} catch (error) {
-			return handleError("updateCommentsCounter", error)
+			throw new GenericError("deleteNews", error)
 		}
 	}
 }

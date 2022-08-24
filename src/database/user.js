@@ -3,6 +3,11 @@ const { DataTypes } = require("sequelize")
 const { sequelize } = require("./sequelize")
 
 const User = sequelize.define("User", {
+	createdAt: {
+		type: DataTypes.DATE(6),
+		allowNull: false,
+		defaultValue: DataTypes.NOW,
+	},
 	// first name of the user
 	firstName: {
 		type: DataTypes.STRING,

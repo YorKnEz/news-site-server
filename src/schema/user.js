@@ -1,13 +1,28 @@
 const { gql, AuthenticationError, UserInputError } = require("apollo-server")
 
-const { dataToFetch, handleError, handleMutationError } = require("../utils")
+const { dataToFetch, GenericError } = require("../utils")
 
 const typeDefs = gql`
 	type Query {
-		"Gets author info about an author"
-		author(id: ID!): Author!
+		"Gets user info about a user"
+		user(id: ID!): Author!
 		"Gets all the followed authors of a user"
 		followedAuthors(offset: Int): [Author!]
+		"Get top 5 best authors on the db"
+		bestAuthors: [Author!]
+	}
+
+	type Mutation {
+		follow(action: String!, id: ID!): FollowResponse!
+	}
+
+	type FollowResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
 	}
 
 	"Author data to be displayed on a news card"
@@ -35,9 +50,9 @@ const typeDefs = gql`
 		"The type of the user, can be either user or author"
 		type: String!
 		"The number of news written by author"
-		writtenNews: Int!
+		writtenNews: Int
 		"The number of followers of the author"
-		followers: Int!
+		followers: Int
 		"The date the account has been created"
 		createdAt: String!
 		"Specifies if the author is being followed by the user"
@@ -47,18 +62,14 @@ const typeDefs = gql`
 
 const resolvers = {
 	Query: {
-		author: async (_, { id }, { dataSources, token }) => {
+		user: async (_, { id }, { dataSources, token }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const author = await dataSources.userAPI.getAuthorById(id)
-
-				return {
-					...author.toJSON(),
-				}
+				return dataSources.userAPI.getUserById(id)
 			} catch (error) {
-				return handleError("author", error)
+				throw new GenericError("user", error)
 			}
 		},
 		followedAuthors: async (_, { offset }, { dataSources, token, userId }) => {
@@ -74,7 +85,39 @@ const resolvers = {
 
 				return authors
 			} catch (error) {
-				return handleError("followedAuthors", error)
+				throw new GenericError("followedAuthors", error)
+			}
+		},
+		bestAuthors: async (_, __, { dataSources, token }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				return dataSources.userAPI.getBestAuthors()
+			} catch (error) {
+				throw new GenericError("bestAuthors", error)
+			}
+		},
+	},
+	Mutation: {
+		follow: async (_, { action, id }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (action !== "follow" && action !== "unfollow")
+					throw new UserInputError("Invalid action")
+
+				if (id === userId)
+					throw new UserInputError("You can't follow/unfollow yourself")
+
+				return {
+					code: 200,
+					success: true,
+					message: await dataSources.userAPI.follow(action, id, userId),
+				}
+			} catch (error) {
+				throw new GenericError("follow", error)
 			}
 		},
 	},
@@ -84,11 +127,9 @@ const resolvers = {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
-				const result = await dataSources.userfollowAPI.isFollowing(id, userId)
-
-				return result
+				return dataSources.userfollowAPI.isFollowing(id, userId)
 			} catch (error) {
-				return handleError("following", error)
+				throw new GenericError("following", error)
 			}
 		},
 	},

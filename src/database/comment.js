@@ -9,6 +9,11 @@ const Comment = sequelize.define("Comment", {
 		allowNull: false,
 		defaultValue: DataTypes.NOW,
 	},
+	// the news this comment belongs to
+	newsId: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+	},
 	// id of the parent of the comment (either a news or another comment if it's a reply)
 	parentId: {
 		type: DataTypes.INTEGER,
@@ -21,7 +26,7 @@ const Comment = sequelize.define("Comment", {
 	},
 	// the body of the comment, the comment itself
 	body: {
-		type: DataTypes.STRING,
+		type: DataTypes.TEXT,
 		allowNull: false,
 	},
 	likes: {
@@ -30,6 +35,12 @@ const Comment = sequelize.define("Comment", {
 		defaultValue: 0,
 	},
 	dislikes: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+		defaultValue: 0,
+	},
+	// the score of the post is likes - dislikes
+	score: {
 		type: DataTypes.INTEGER,
 		allowNull: false,
 		defaultValue: 0,

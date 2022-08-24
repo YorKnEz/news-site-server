@@ -3,8 +3,7 @@ const { UserInputError } = require("apollo-server")
 const { Op } = require("sequelize")
 
 const { Comment, News, UserVote } = require("../database")
-const comment = require("../schema/comment")
-const { handleError } = require("../utils")
+const { GenericError } = require("../utils")
 
 class CommentAPI extends DataSource {
 	constructor() {
@@ -12,58 +11,142 @@ class CommentAPI extends DataSource {
 	}
 
 	// gets the comments of news or other comments
-	async getComments(oldestCommentDate, parentId, parentType, dataToFetch) {
+	async getCommentsByDate(oldestId, parentId, parentType, dataToFetch) {
 		try {
-			// get the comments
-			const comments = await Comment.findAll({
+			// find the oldest comment
+			const oldestComm = await Comment.findOne({
+				where: { id: oldestId, parentId, parentType },
+			})
+
+			// add the additional options if there is an oldest news
+			const options = {
 				limit: dataToFetch,
-				where: {
-					parentId,
-					parentType,
-					createdAt: {
-						[Op.lt]: new Date(parseInt(oldestCommentDate)).getTime(),
-					},
-				},
+				where: { parentId, parentType },
 				order: [
 					["createdAt", "DESC"],
 					["id", "DESC"],
 				],
+			}
+
+			if (oldestComm) {
+				options.where.createdAt = { [Op.lte]: oldestComm.createdAt }
+				options.where.id = { [Op.lt]: oldestId }
+			}
+
+			// get the news
+			return Comment.findAll(options)
+		} catch (error) {
+			throw new GenericError("getCommentsByDate", error)
+		}
+	}
+
+	async getCommentsByScore(oldestId, parentId, parentType, dataToFetch) {
+		try {
+			// find the oldest comment
+			const oldestComm = await Comment.findOne({
+				where: { id: oldestId },
 			})
+
+			// add the additional options if there is an oldest comment
+			let options = {
+				limit: dataToFetch,
+				where: { parentId, parentType },
+				order: [
+					["score", "DESC"],
+					["createdAt", "DESC"],
+					["id", "DESC"],
+				],
+			}
+
+			if (oldestComm) {
+				options.where.score = { [Op.eq]: oldestComm.score }
+				options.where.createdAt = { [Op.lte]: oldestComm.createdAt }
+				options.where.id = { [Op.not]: oldestComm.id }
+			}
+
+			const comments = await Comment.findAll(options)
+
+			// if the max number of comments hasn't been fetch, try to fetch more
+			if (oldestId && comments.length < dataToFetch) {
+				options.limit = dataToFetch - comments.length
+				options.where = { parentId, parentType }
+
+				if (oldestComm) {
+					options.where.score = { [Op.lt]: oldestComm.score }
+				}
+
+				const restOfComments = await Comment.findAll(options)
+
+				return [...comments, ...restOfComments]
+			}
 
 			return comments
 		} catch (error) {
-			return handleError("getComments", error)
+			throw new GenericError("getCommentsByScore", error)
+		}
+	}
+
+	async getCommentById(commentId) {
+		try {
+			const comment = await Comment.findOne({
+				where: { id: commentId },
+			})
+
+			if (!comment) throw new UserInputError("Invalid input.")
+
+			return comment
+		} catch (error) {
+			throw new GenericError("getCommentById", error)
+		}
+	}
+
+	async getNthParentId(depth, commentId) {
+		try {
+			let comment = await Comment.findOne({
+				where: { id: commentId },
+			})
+
+			for (let i = 0; i < depth - 1; i++) {
+				if (comment.parentType === "news") return -1
+
+				comment = await Comment.findOne({
+					where: { id: comment.parentId },
+				})
+			}
+
+			return comment.id
+		} catch (error) {
+			throw new GenericError("getNthParentId", error)
 		}
 	}
 
 	async addComment(commentData, userId) {
 		try {
-			// if the parent of the comment is a news, we need to increase the comments counter
-			if (commentData.parentType === "news") {
-				// get the news
-				const news = await News.findOne({
-					where: { id: commentData.parentId },
+			let item = commentData
+
+			// update the comments replies recursively
+			while (item.parentType === "comment") {
+				item = await Comment.findOne({
+					where: { id: item.parentId },
 				})
 
 				// update the comment counter
-				await news.update({ comments: news.comments + 1 })
+				await item.update({ replies: item.replies + 1 })
 
 				// save the changes
-				await news.save()
+				await item.save()
 			}
-			// if the parent of the comment is a comment, we need to incresea the replies counter
-			else if (commentData.parentType === "comment") {
-				// get the comment
-				const parentComment = await Comment.findOne({
-					where: { id: commentData.parentId },
-				})
 
-				// update the replies counter
-				await parentComment.update({ replies: parentComment.replies + 1 })
+			// get the news
+			item = await News.findOne({
+				where: { id: item.parentId },
+			})
 
-				// save the changes
-				await parentComment.save()
-			}
+			// update the comment counter
+			await item.update({ replies: item.replies + 1 })
+
+			// save the changes
+			await item.save()
 
 			// create the comment
 			const comment = await Comment.create({
@@ -73,7 +156,7 @@ class CommentAPI extends DataSource {
 
 			return comment
 		} catch (error) {
-			return handleError("addComment", error)
+			throw new GenericError("addComment", error)
 		}
 	}
 
@@ -83,9 +166,10 @@ class CommentAPI extends DataSource {
 			const comment = await Comment.findOne({
 				where: {
 					id: commentId,
-					UserId: userId,
+					newsId: commentData.newsId,
 					parentId: commentData.parentId,
 					parentType: commentData.parentType,
+					UserId: userId,
 				},
 			})
 
@@ -101,7 +185,7 @@ class CommentAPI extends DataSource {
 			// return the updated comment
 			return comment
 		} catch (error) {
-			return handleError("editComment", error)
+			throw new GenericError("editComment", error)
 		}
 	}
 
@@ -120,7 +204,7 @@ class CommentAPI extends DataSource {
 
 			// in order to avoid complications, every deleted comment will have it's author replaced with [deleted] and the content of the comment with [deleted]
 			await comment.update({
-				body: "[deleted]",
+				body: "<p>[deleted]</p>",
 			})
 
 			// save changes
@@ -129,142 +213,7 @@ class CommentAPI extends DataSource {
 			// return the deleted comment
 			return comment
 		} catch (error) {
-			return handleError("removeComment", error)
-		}
-	}
-
-	async voteComment(action, commentId, userId) {
-		try {
-			/*
-				propName - if the user wants to like the comment, we update propName of comment
-				propName2 - if the user wants to like the comment, but he already disliked it, we update propName and propName2 of comment
-				message1 - message to display if the user removed the like successfully
-				message2 - message to display if the user liked the news successfully
-			*/
-			const options = {
-				like: {
-					propName: "likes",
-					propName2: "dislikes",
-					message1: "Comment like removed",
-					message2: "Comment liked",
-				},
-				dislike: {
-					propName: "dislikes",
-					propName2: "likes",
-					message1: "Comment dislike removed",
-					message2: "Comment disliked",
-				},
-			}
-
-			// first check if the comment exists
-			const comment = await Comment.findOne({ where: { id: commentId } })
-
-			// if the comment doesn't exist, throw an error
-			if (!comment) throw new UserInputError("Invalid id.")
-
-			// try to find if the user already liked the comment
-			const link1 = await UserVote.findOne({
-				where: {
-					parentId: commentId,
-					parentType: "comment",
-					UserId: userId,
-					type: action,
-				},
-			})
-
-			// if he already liked the comment, remove the like
-			if (link1) {
-				// remove the link
-				await link1.destroy()
-
-				// update likes counter
-				await comment.update({
-					[options[action].propName]: comment[options[action].propName] - 1,
-				})
-
-				// save changes
-				await comment.save()
-
-				// return message
-				return {
-					message: options[action].message1,
-					likes: comment.likes,
-					dislikes: comment.dislikes,
-				}
-			}
-
-			// try to find if the user disliked the comment
-			const link2 = await UserVote.findOne({
-				where: {
-					parentId: commentId,
-					parentType: "comment",
-					UserId: userId,
-					type: action === "like" ? "dislike" : "like",
-				},
-			})
-
-			// if he already disliked the comment, remove the dislike in order to add the like
-			if (link2) {
-				// remove the link
-				link2.destroy()
-
-				// update dislikes counter
-				await comment.update({
-					[options[action].propName2]: comment[options[action].propName2] - 1,
-				})
-
-				// save changes
-				await comment.save()
-			}
-
-			// create the link between the user and the comment
-			await UserVote.create({
-				UserId: userId,
-				parentId: commentId,
-				parentType: "comment",
-				type: action,
-			})
-
-			// update likes counter
-			await comment.update({
-				[options[action].propName]: comment[options[action].propName] + 1,
-			})
-
-			// save changes
-			await comment.save()
-
-			return {
-				message: options[action].message2,
-				likes: comment.likes,
-				dislikes: comment.dislikes,
-			}
-		} catch (error) {
-			return handleError("voteComment", error)
-		}
-	}
-
-	// update the replies counter of the comment
-	async updateRepliesCounter(action, commentId) {
-		try {
-			// get the news
-			const comment = await Comment.findOne({
-				where: { id: commentId },
-			})
-
-			// if the news is not found, throw an error
-			if (!comment) throw new UserInputError("Invalid input.")
-
-			if (action === "up")
-				await comment.update({ replies: comment.replies + 1 })
-
-			if (action === "down")
-				await comment.update({ replies: comment.replies - 1 })
-
-			await comment.save()
-
-			return comment.replies
-		} catch (error) {
-			return handleError("updateRepliesCounter", error)
+			throw new GenericError("removeComment", error)
 		}
 	}
 }

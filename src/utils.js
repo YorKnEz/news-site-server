@@ -1,3 +1,5 @@
+const { ApolloError } = require("apollo-server")
+
 // removes the query parameters from a image link or returns "default"
 const evaluateImageLink = link => {
 	const isJPG = link.indexOf(".jpg")
@@ -25,16 +27,6 @@ const formatTitle = title => {
 	return title
 }
 
-const handleError = (location, error) => {
-	if (error.status && error.message) {
-		console.log(`Error ${error.status} in ${location}: ${error.message}`)
-	} else {
-		console.log(`Error in ${location}: ${error}`)
-	}
-
-	return error
-}
-
 const handleMutationError = (location, error) => {
 	if (error.status && error.message) {
 		console.log(`Error ${error.status} in ${location}: ${error.message}`)
@@ -58,10 +50,27 @@ const handleMutationError = (location, error) => {
 // used for resolvers that return arrays
 const dataToFetch = 4
 
+// custom error class
+class GenericError extends ApolloError {
+	constructor(location, error) {
+		const message = error.message ? error.message : error
+
+		super(message, 500)
+
+		if (error.status && error.message) {
+			console.log(`Error ${error.status} in ${location}: ${error.message}`)
+		} else {
+			console.log(`Error in ${location}: ${error}`)
+		}
+
+		Object.defineProperty(this, "name", { value: message })
+	}
+}
+
 module.exports = {
 	dataToFetch,
 	evaluateImageLink,
 	formatTitle,
-	handleError,
 	handleMutationError,
+	GenericError,
 }

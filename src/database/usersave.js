@@ -3,29 +3,24 @@ const { DataTypes } = require("sequelize")
 const { sequelize } = require("./sequelize")
 const User = require("./user")
 
-const UserVote = sequelize.define("UserVote", {
+const UserSave = sequelize.define("UserSave", {
 	createdAt: {
 		type: DataTypes.DATE(6),
 		allowNull: false,
 		defaultValue: DataTypes.NOW,
 	},
-	// the id of the news or comment being voted
+	// the id of the news or comment being saved
 	parentId: {
 		type: DataTypes.INTEGER,
 		allowNull: false,
 	},
-	// the type fo the parent being voted, can be either "news" or "comment"
+	// the type of the parent being saved, can be either "news" or "comment"
 	parentType: {
-		type: DataTypes.STRING,
-		allowNull: false,
-	},
-	// the type means "like" or "dislike" to avoid creating two tables
-	type: {
 		type: DataTypes.STRING,
 		allowNull: false,
 	},
 })
 
-UserVote.belongsTo(User)
+UserSave.belongsTo(User)
 
-module.exports = UserVote
+module.exports = UserSave

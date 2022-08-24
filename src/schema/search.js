@@ -1,51 +1,63 @@
 const { gql } = require("apollo-server")
+const { GenericError } = require("../utils")
 
 const typeDefs = gql`
+	union Result = NewsSearch | AuthorSearch
+
 	type Query {
 		"Gets all matching authors or news matching a search string"
-		search(search: String!, filter: String!): [SearchResult!]
+		search(search: String!, filter: String!, fetchedResults: Int!): [Result!]
 	}
 
-	type SearchResult {
+	type NewsSearch {
 		"How much the news matches the searching query"
 		matches: Int
-		"The news Object. Required if the filter type is title, body or tags"
-		news: News
-		"The authors Object. Required if the filter type is author"
-		author: Author
+		"The search result."
+		result: News
+	}
+
+	type AuthorSearch {
+		"The search result."
+		result: Author
 	}
 `
 
 const resolvers = {
 	Query: {
-		search: async (_, { search, filter }, { dataSources, token }) => {
+		search: async (
+			_,
+			{ search, filter, fetchedResults },
+			{ dataSources, token }
+		) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
 
 				switch (filter) {
 					case "title":
-						const newsTitle = await dataSources.newsAPI.searchNewsByTitle(
-							search
-						)
-
-						return newsTitle
+						return dataSources.newsAPI.searchNewsByTitle(search, fetchedResults)
 					case "body":
-						const newsBody = await dataSources.newsAPI.searchNewsByBody(search)
-
-						return newsBody
+						return dataSources.newsAPI.searchNewsByBody(search, fetchedResults)
 					case "author":
-						const authors = await dataSources.userAPI.searchAuthors(search)
-
-						return authors
+						return dataSources.userAPI.searchAuthors(search, fetchedResults)
 					case "tags":
-						const newsTags = await dataSources.newsAPI.searchNewsByTags(search)
-
-						return newsTags
+						return dataSources.newsAPI.searchNewsByTags(search, fetchedResults)
 				}
 			} catch (error) {
-				return handleError("search", error)
+				throw new GenericError("search", error)
 			}
+		},
+	},
+	Result: {
+		__resolveType: async ({ result }) => {
+			// only news have a title
+			if (result?.title) return "NewsSearch"
+
+			// only auhtors have a full name
+			if (result?.fullName) return "AuthorSearch"
+
+			// throw an error
+			return null
 		},
 	},
 }
