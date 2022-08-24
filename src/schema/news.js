@@ -15,7 +15,7 @@ const {
 const typeDefs = gql`
 	type Query {
 		"Query to get news array for the home page"
-		newsForHome(oldestId: ID!, sortBy: String!): [News!]!
+		newsForHome(oldestId: ID!, sortBy: String!, followed: Boolean): [News!]!
 		"Query to get reddit news array for the home page"
 		newsForHomeReddit(after: String): NewsForHomeRedditResponse!
 		"Gets all the news of a specific author"
@@ -140,17 +140,31 @@ const typeDefs = gql`
 const resolvers = {
 	Query: {
 		// returns an array of news created on the site that will be used to populate the homepage
-		newsForHome: async (_, { oldestId, sortBy }, { dataSources }) => {
+		newsForHome: async (
+			_,
+			{ oldestId, sortBy, followed },
+			{ dataSources, token, userId }
+		) => {
 			try {
-				if (sortBy === "date") {
-					return dataSources.newsAPI.getNewsByDate(oldestId, dataToFetch)
-				}
+				if (followed && !token)
+					throw new AuthenticationError("You must be authenticated to do this.")
 
-				if (sortBy === "score") {
-					return dataSources.newsAPI.getNewsByScore(oldestId, dataToFetch)
+				switch (sortBy) {
+					case "date":
+						return dataSources.newsAPI.getNewsByDate(
+							oldestId,
+							followed ? userId : null,
+							dataToFetch
+						)
+					case "score":
+						return dataSources.newsAPI.getNewsByScore(
+							oldestId,
+							followed ? userId : null,
+							dataToFetch
+						)
+					default:
+						return null
 				}
-
-				return null
 			} catch (error) {
 				throw new GenericError("newsForHome", error)
 			}

@@ -3,7 +3,7 @@ const { ForbiddenError, UserInputError } = require("apollo-server")
 const fs = require("fs")
 const { Op, Sequelize } = require("sequelize")
 
-const { News, User } = require("../database")
+const { News, User, UserFollow } = require("../database")
 const { formatTitle, GenericError, dataToFetch } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
@@ -15,7 +15,7 @@ class NewsAPI extends DataSource {
 	}
 	// retrieve [newsToFetch] news based on the oldest fetched news id
 
-	async getNewsByDate(oldestId, dataToFetch) {
+	async getNewsByDate(oldestId, userId, dataToFetch) {
 		try {
 			// find the oldest news
 			const oldestNews = await News.findOne({
@@ -37,6 +37,16 @@ class NewsAPI extends DataSource {
 				options.where.id = { [Op.lt]: oldestId }
 			}
 
+			if (userId) {
+				const followedAuthors = await UserFollow.findAll({
+					where: { UserId: userId },
+				})
+
+				const authorIds = followedAuthors.map(a => a.authorId)
+
+				options.where.authorId = { [Op.in]: authorIds }
+			}
+
 			// get the news
 			return News.findAll(options)
 		} catch (error) {
@@ -44,7 +54,7 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	async getNewsByScore(oldestId, dataToFetch) {
+	async getNewsByScore(oldestId, userId, dataToFetch) {
 		try {
 			// find the oldest news
 			let oldestNews = await News.findOne({
@@ -68,6 +78,16 @@ class NewsAPI extends DataSource {
 				options.where.id = { [Op.not]: oldestNews.id }
 			}
 
+			if (userId) {
+				const followedAuthors = await UserFollow.findAll({
+					where: { UserId: userId },
+				})
+
+				const authorIds = followedAuthors.map(a => a.authorId)
+
+				options.where.authorId = { [Op.in]: authorIds }
+			}
+
 			const news = await News.findAll(options)
 
 			// if the fetched news are less that the max, try to fetch more
@@ -76,7 +96,10 @@ class NewsAPI extends DataSource {
 				oldestNews = news.length > 0 ? news[news.length - 1] : oldestNews
 
 				options.limit = dataToFetch - news.length
-				options.where = { type: "created" }
+				options.where = {
+					type: options.where.type,
+					authorId: options.where.authorId,
+				}
 
 				if (oldestNews) {
 					options.where.score = { [Op.lt]: oldestNews.score }
