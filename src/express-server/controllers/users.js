@@ -229,6 +229,16 @@ exports.loginJWT = async (req, res, next) => {
 
 		const user = await User.findOne({ where: { id: userJWT.UserId } })
 
+		if (!user) {
+			// if the jwt existed, delete it
+			await userJWT.destroy()
+
+			return next({
+				status: 401,
+				message: "Unauthorized",
+			})
+		}
+
 		res.status(200).json({
 			message: "Authenticated successfully",
 			user,

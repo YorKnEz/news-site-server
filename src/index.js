@@ -38,10 +38,8 @@ async function startApolloServer() {
 		context: async ({ req }) => {
 			try {
 				// get the user token from the headers
-				const reqToken = req.headers.authorization
-
-				// if the token doesn't exist the value of reqToken will be "null" so we take that into account when getting the token
-				const token = reqToken && reqToken !== "null" ? reqToken : ""
+				const token = req.headers.authorization
+				console.log(token)
 
 				if (token) {
 					const { data } = await axios({
@@ -58,7 +56,7 @@ async function startApolloServer() {
 					}
 				}
 			} catch (error) {
-				throw new AuthenticationError(error.message)
+				return
 			}
 		},
 	})
