@@ -19,4 +19,6 @@ router.post("/verify-password-reset", users.verifyPasswordReset)
 
 router.patch("/reset-password", users.resetPassword)
 
+router.post("/become-editor", users.becomeEditor)
+
 module.exports = router
