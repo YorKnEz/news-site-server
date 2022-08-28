@@ -97,10 +97,12 @@ class NewsAPI extends DataSource {
 				oldestNews = news.length > 0 ? news[news.length - 1] : oldestNews
 
 				options.limit = dataToFetch - news.length
-				options.where = {
-					type: options.where.type,
-					authorId: options.where.authorId,
-				}
+
+				// reset options
+				const { authorId, type } = options.where
+
+				options.where = { type }
+				if (userId) options.where.authorId = authorId
 
 				if (oldestNews) {
 					options.where.score = { [Op.lt]: oldestNews.score }

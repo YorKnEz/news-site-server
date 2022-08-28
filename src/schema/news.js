@@ -153,13 +153,13 @@ const resolvers = {
 					case "date":
 						return dataSources.newsAPI.getNewsByDate(
 							oldestId,
-							followed ? userId : null,
+							followed ? userId : undefined,
 							dataToFetch
 						)
 					case "score":
 						return dataSources.newsAPI.getNewsByScore(
 							oldestId,
-							followed ? userId : null,
+							followed ? userId : undefined,
 							dataToFetch
 						)
 					default:
