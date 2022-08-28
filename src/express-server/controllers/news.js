@@ -1,8 +1,6 @@
 // required for saving images locally
 const multer = require("multer")
 
-const { News, User } = require("../../database")
-
 const storage = multer.diskStorage({
 	destination: function (req, file, cb) {
 		cb(null, "public")
@@ -12,7 +10,7 @@ const storage = multer.diskStorage({
 	},
 })
 
-const upload = multer({ storage: storage }).single("file")
+const upload = multer({ storage }).single("file")
 
 exports.uploadThumbnail = async (req, res, next) => {
 	upload(req, res, err => {

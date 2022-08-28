@@ -1,9 +1,4 @@
-const {
-	gql,
-	AuthenticationError,
-	ForbiddenError,
-	UserInputError,
-} = require("apollo-server")
+const { gql, AuthenticationError, ForbiddenError } = require("apollo-server")
 
 const {
 	dataToFetch,
@@ -153,13 +148,13 @@ const resolvers = {
 					case "date":
 						return dataSources.newsAPI.getNewsByDate(
 							oldestId,
-							followed ? userId : null,
+							followed ? userId : undefined,
 							dataToFetch
 						)
 					case "score":
 						return dataSources.newsAPI.getNewsByScore(
 							oldestId,
-							followed ? userId : null,
+							followed ? userId : undefined,
 							dataToFetch
 						)
 					default:
