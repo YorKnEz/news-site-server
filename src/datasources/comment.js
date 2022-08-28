@@ -2,7 +2,7 @@ const { DataSource } = require("apollo-datasource")
 const { UserInputError } = require("apollo-server")
 const { Op } = require("sequelize")
 
-const { Comment, News, UserVote } = require("../database")
+const { Comment, News } = require("../database")
 const { GenericError } = require("../utils")
 
 class CommentAPI extends DataSource {

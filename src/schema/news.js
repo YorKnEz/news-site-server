@@ -1,9 +1,4 @@
-const {
-	gql,
-	AuthenticationError,
-	ForbiddenError,
-	UserInputError,
-} = require("apollo-server")
+const { gql, AuthenticationError, ForbiddenError } = require("apollo-server")
 
 const {
 	dataToFetch,
