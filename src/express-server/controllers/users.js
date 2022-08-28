@@ -440,3 +440,40 @@ exports.signOut = async (req, res, next) => {
 		next(e)
 	}
 }
+
+// sends an email to
+exports.becomeEditor = async (req, res, next) => {
+	try {
+		const { other, firstName, lastName, email } = req.body
+		const { cv } = req.files
+
+		if (MAIL_USER && MAIL_PASS) {
+			const mailOptions = {
+				from: email,
+				to: MAIL_USER,
+				subject: `${firstName} ${lastName} wants to become an author`,
+				text: other,
+				attachments: [
+					{
+						filename: "CV.pdf",
+						content: new Buffer.from(cv.data),
+					},
+				],
+			}
+
+			mail.sendMail(mailOptions, (e, info) => {
+				if (e) {
+					console.error(e)
+				} else {
+					console.log("Email sent: " + info.response)
+				}
+			})
+		} else {
+			console.log("Email sent")
+		}
+
+		res.status(200).json("Request sent successfully.")
+	} catch (e) {
+		next(e)
+	}
+}
