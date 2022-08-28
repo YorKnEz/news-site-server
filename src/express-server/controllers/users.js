@@ -244,9 +244,21 @@ exports.loginJWT = async (req, res, next) => {
 
 		res.status(200).json({
 			message: "Authenticated successfully",
-			user,
+			user: {
+				id: user.id,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				fullName: user.fullName,
+				email: user.email,
+				verified: user.verified,
+				profilePicture: user.profilePicture,
+				type: user.type,
+				writtenNews: user?.writtenNews,
+				followers: user?.followers,
+				createdAt: user.createdAt.getTime(),
+			},
 		})
-	} catch (error) {
+	} catch (e) {
 		next(e)
 	}
 }

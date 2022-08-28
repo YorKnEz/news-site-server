@@ -40,7 +40,6 @@ async function startApolloServer() {
 			try {
 				// get the user token from the headers
 				const token = req.headers.authorization
-				console.log(token)
 
 				if (token) {
 					const { data } = await axios({
