@@ -7,7 +7,8 @@ const { News, User, UserFollow } = require("../database")
 const { formatTitle, GenericError, dataToFetch } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
-const ip = process.env.EXPRESS_SERVER_IP
+const hostIp = process.env.HOST_IP
+const port = process.env.EXPRESS_SERVER_PORT
 
 class NewsAPI extends DataSource {
 	constructor() {
@@ -343,7 +344,10 @@ class NewsAPI extends DataSource {
 
 			// delete the old thumbnail from the server if there is a new one
 			if (newsData.thumbnail && news.thumbnail) {
-				const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
+				const thumbnail = news.thumbnail.replace(
+					`${hostIp}:${port}/public/`,
+					""
+				)
 
 				// delete the thumbnail from the server
 				fs.unlink(`./public/${thumbnail}`, err => {
@@ -395,7 +399,10 @@ class NewsAPI extends DataSource {
 				throw new ForbiddenError("You are not the author of this news.")
 
 			if (news.thumbnail) {
-				const thumbnail = news.thumbnail.replace(`${ip}/public/`, "")
+				const thumbnail = news.thumbnail.replace(
+					`${hostIp}:${port}/public/`,
+					""
+				)
 
 				// delete the thumbnail from the server
 				fs.unlink(`./public/${thumbnail}`, err => {

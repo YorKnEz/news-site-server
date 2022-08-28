@@ -29,6 +29,8 @@ const privateKey = process.env.PRIVATEKEY
 const MAIL_USER = process.env.MAIL_USER
 const MAIL_PASS = process.env.MAIL_PASS
 
+// the host on which the server is running
+const hostIp = process.env.HOST_IP
 // the port the api is hosted on
 const port = process.env.EXPRESS_SERVER_PORT
 // the port the client is hosted on
@@ -100,6 +102,7 @@ exports.register = async (req, res, next) => {
 				mailString.match(regEx),
 				{
 					firstName: user.firstName,
+					hostIp,
 					port: clientPort,
 					uuid,
 				}
@@ -121,7 +124,7 @@ exports.register = async (req, res, next) => {
 			})
 		} else {
 			console.log(
-				`Email sent to ${user.firstName}, verification url: http://localhost:${port}/users/verify?token=${uuid}`
+				`Email sent to ${user.firstName}, verification url: ${hostIp}:${port}/users/verify?token=${uuid}`
 			)
 		}
 
@@ -338,6 +341,7 @@ exports.verifyPasswordReset = async (req, res, next) => {
 				mailString.match(regEx),
 				{
 					firstName: user.firstName,
+					hostIp,
 					port: process.env.CLIENT_PORT,
 					uuid,
 				}
@@ -359,7 +363,7 @@ exports.verifyPasswordReset = async (req, res, next) => {
 			})
 		} else {
 			console.log(
-				`Email sent to ${user.firstName}, verification url: http://localhost:${port}/users/reset-password?token=${uuid}`
+				`Email sent to ${user.firstName}, verification url: ${hostIp}:${port}/users/reset-password?token=${uuid}`
 			)
 		}
 
