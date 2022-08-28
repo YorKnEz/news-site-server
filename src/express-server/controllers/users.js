@@ -244,9 +244,21 @@ exports.loginJWT = async (req, res, next) => {
 
 		res.status(200).json({
 			message: "Authenticated successfully",
-			user,
+			user: {
+				id: user.id,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				fullName: user.fullName,
+				email: user.email,
+				verified: user.verified,
+				profilePicture: user.profilePicture,
+				type: user.type,
+				writtenNews: user?.writtenNews,
+				followers: user?.followers,
+				createdAt: user.createdAt.getTime(),
+			},
 		})
-	} catch (error) {
+	} catch (e) {
 		next(e)
 	}
 }
@@ -436,6 +448,43 @@ exports.signOut = async (req, res, next) => {
 		await userJWT.destroy()
 
 		res.status(200).send("Signed out successfully.")
+	} catch (e) {
+		next(e)
+	}
+}
+
+// sends an email to
+exports.becomeEditor = async (req, res, next) => {
+	try {
+		const { other, firstName, lastName, email } = req.body
+		const { cv } = req.files
+
+		if (MAIL_USER && MAIL_PASS) {
+			const mailOptions = {
+				from: email,
+				to: MAIL_USER,
+				subject: `${firstName} ${lastName} wants to become an author`,
+				text: other,
+				attachments: [
+					{
+						filename: "CV.pdf",
+						content: new Buffer.from(cv.data),
+					},
+				],
+			}
+
+			mail.sendMail(mailOptions, (e, info) => {
+				if (e) {
+					console.error(e)
+				} else {
+					console.log("Email sent: " + info.response)
+				}
+			})
+		} else {
+			console.log("Email sent")
+		}
+
+		res.status(200).json("Request sent successfully.")
 	} catch (e) {
 		next(e)
 	}
