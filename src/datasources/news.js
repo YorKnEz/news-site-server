@@ -250,7 +250,6 @@ class NewsAPI extends DataSource {
 				`,
 				{
 					model: News,
-					logging: console.log,
 					replacements: {
 						search: search.split(" ").join(" | "),
 						limit: dataToFetch,
