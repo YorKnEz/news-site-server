@@ -43,7 +43,7 @@ class CommentAPI extends DataSource {
 	async getCommentsByScore(oldestId, parentId, parentType, dataToFetch) {
 		try {
 			// find the oldest comment
-			const oldestComm = await Comment.findOne({
+			let oldestComm = await Comment.findOne({
 				where: { id: oldestId },
 			})
 
@@ -67,7 +67,10 @@ class CommentAPI extends DataSource {
 			const comments = await Comment.findAll(options)
 
 			// if the max number of comments hasn't been fetch, try to fetch more
-			if (oldestId && comments.length < dataToFetch) {
+			if (comments.length < dataToFetch) {
+				oldestComm =
+					comments.length > 0 ? comments[comments.length - 1] : oldestComm
+
 				options.limit = dataToFetch - comments.length
 				options.where = { parentId, parentType }
 
