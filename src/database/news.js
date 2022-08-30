@@ -17,7 +17,7 @@ const News = sequelize.define(
 		},
 		// the id of the author that created the news
 		authorId: {
-			type: DataTypes.STRING,
+			type: DataTypes.INTEGER,
 			allowNull: false,
 		},
 		// the image to be used as a thumbnail for the news
