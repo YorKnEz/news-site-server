@@ -54,28 +54,6 @@ class UserAPI extends DataSource {
 		}
 	}
 
-	async searchAuthors(name) {
-		try {
-			// find the author whose first, last or full name is matching search query
-			const authors = await User.findAll({
-				where: {
-					[Op.or]: [
-						{ fullName: name },
-						{ firstname: name },
-						{ lastName: name },
-					],
-					type: "author",
-				},
-			})
-
-			return authors.map(author => ({
-				result: author,
-			}))
-		} catch (error) {
-			throw new GenericError("searchAuthors", error)
-		}
-	}
-
 	async getFollowedAuthors(offset, userId, dataToFetch) {
 		try {
 			const authorIds = await UserFollow.findAll({

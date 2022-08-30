@@ -238,55 +238,28 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	async searchNewsByTitle(search, fetchedResults) {
+	async searchNews(search, searchBy, fetchedResults) {
 		try {
-			const news = await News.findAll({
-				limit: dataToFetch,
-				offset: fetchedResults,
-				where: Sequelize.literal("MATCH (title) AGAINST (:search)"),
-				replacements: {
-					search: search,
-				},
-			})
-
-			return news.map(n => ({ result: n }))
+			return sequelize.query(
+				`
+				SELECT * FROM "News"
+				WHERE ${searchBy !== "all" ? searchBy : "all_search"} @@ to_tsquery(:search)
+				AND "authorId" != '-1'
+				LIMIT :limit
+				OFFSET :offset;
+				`,
+				{
+					model: News,
+					logging: console.log,
+					replacements: {
+						search: search.split(" ").join(" | "),
+						limit: dataToFetch,
+						offset: fetchedResults,
+					},
+				}
+			)
 		} catch (error) {
-			throw new GenericError("searchNewsByTitle", error)
-		}
-	}
-
-	// for efficiency reasons (lol), the search string must be an exact match of the content of the news, otherwise it won't find anything
-	async searchNewsByBody(search, fetchedResults) {
-		try {
-			const news = await News.findAll({
-				limit: dataToFetch,
-				offset: fetchedResults,
-				where: Sequelize.literal("MATCH (body) AGAINST (:search)"),
-				replacements: {
-					search: search,
-				},
-			})
-
-			return news.map(n => ({ result: n }))
-		} catch (error) {
-			throw new GenericError("searchNewsByBody", error)
-		}
-	}
-
-	async searchNewsByTags(search, fetchedResults) {
-		try {
-			const news = await News.findAll({
-				limit: dataToFetch,
-				offset: fetchedResults,
-				where: Sequelize.literal("MATCH (tags) AGAINST (:search)"),
-				replacements: {
-					search: search,
-				},
-			})
-
-			return news.map(n => ({ result: n }))
-		} catch (error) {
-			throw new GenericError("searchNewsByTags", error)
+			throw new GenericError("searchNews", error)
 		}
 	}
 
