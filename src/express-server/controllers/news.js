@@ -1,27 +1,26 @@
-// required for saving images locally
-const multer = require("multer")
-
-const storage = multer.diskStorage({
-	destination: function (req, file, cb) {
-		cb(null, "public")
-	},
-	filename: (req, file, cb) => {
-		cb(null, file.originalname)
-	},
-})
-
-const upload = multer({ storage }).single("file")
+const express = require("express")
 
 exports.uploadThumbnail = async (req, res, next) => {
-	upload(req, res, err => {
-		if (err) {
+	try {
+		if (!req.files || Object.keys(req.files).lenght === 0)
 			return next({
-				status: 500,
-				message: err,
+				status: 400,
+				message: "No files were uploaded.",
 			})
-		}
-		res.status(200).json({
-			message: "Successfully uploaded thumbnail.",
+
+		const thumbnail = req.files.file
+		const uploadPath = __dirname + "/../../../public/" + thumbnail.name
+
+		thumbnail.mv(uploadPath, err => {
+			if (err)
+				return next({
+					status: 500,
+					message: err,
+				})
 		})
-	})
+
+		res.status(200).send("File uploaded")
+	} catch (e) {
+		next(e)
+	}
 }
