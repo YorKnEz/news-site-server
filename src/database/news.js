@@ -86,12 +86,35 @@ const News = sequelize.define(
 			type: DataTypes.STRING,
 			allowNull: true,
 		},
+		// required for searching by title, body and tags
+		all_search: {
+			type: DataTypes.TSVECTOR,
+		},
 	},
 	{
 		indexes: [
-			{ type: "FULLTEXT", name: "title_index", fields: ["title"] },
-			{ type: "FULLTEXT", name: "body_index", fields: ["body"] },
-			{ type: "FULLTEXT", name: "tags_index", fields: ["tags"] },
+			{
+				name: "all_index",
+				fields: ["all_search"],
+				using: "gin",
+			},
+			{
+				name: "title_index",
+				fields: [
+					sequelize.fn("to_tsvector", "english", sequelize.col("title")),
+				],
+				using: "gin",
+			},
+			{
+				name: "body_index",
+				fields: [sequelize.fn("to_tsvector", "english", sequelize.col("body"))],
+				using: "gin",
+			},
+			{
+				name: "tags_index",
+				fields: [sequelize.fn("to_tsvector", "english", sequelize.col("tags"))],
+				using: "gin",
+			},
 		],
 	}
 )

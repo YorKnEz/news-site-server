@@ -1,9 +1,10 @@
 const { DataSource } = require("apollo-datasource")
 const { ForbiddenError, UserInputError } = require("apollo-server")
 const fs = require("fs")
-const { Op, Sequelize } = require("sequelize")
+const { Op } = require("sequelize")
 
 const { News, User, UserFollow } = require("../database")
+const { sequelize } = require("../database/sequelize")
 const { formatTitle, GenericError, dataToFetch } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
@@ -310,6 +311,20 @@ class NewsAPI extends DataSource {
 				link: newsData.title.replace(/(\W+)/g, "-").toLowerCase(),
 			})
 
+			await news.update({
+				all_search: sequelize.fn(
+					"to_tsvector",
+					sequelize.fn(
+						"concat",
+						sequelize.col("title"),
+						sequelize.col("body"),
+						sequelize.col("tags")
+					)
+				),
+			})
+
+			await news.save()
+
 			// increment the users writtenNews
 			await user.update({
 				writtenNews: user.writtenNews + 1,
@@ -369,6 +384,18 @@ class NewsAPI extends DataSource {
 				link: newsData.title.replace(/(\W+)/g, "-").toLowerCase(),
 			})
 
+			await news.update({
+				all_search: sequelize.fn(
+					"to_tsvector",
+					sequelize.fn(
+						"concat",
+						sequelize.col("title"),
+						sequelize.col("body"),
+						sequelize.col("tags")
+					)
+				),
+			})
+
 			// save changes
 			await news.save()
 
@@ -421,6 +448,21 @@ class NewsAPI extends DataSource {
 				body: "<p>[deleted]</p>",
 				type: "[deleted]",
 			})
+
+			await news.update({
+				all_search: sequelize.fn(
+					"to_tsvector",
+					sequelize.fn(
+						"concat",
+						sequelize.col("title"),
+						sequelize.col("body"),
+						sequelize.col("tags")
+					)
+				),
+			})
+
+			// save changes
+			await news.save()
 
 			// update the number of written news of the user
 			await user.update({
