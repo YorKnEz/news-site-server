@@ -12,9 +12,9 @@ const sequelize = new Sequelize({
 	database: DB_NAME,
 	username: DB_USER,
 	password: DB_PASS,
-	host:  DB_HOST,
+	host: DB_HOST,
 	port: DB_PORT,
-	dialect: "mysql",
+	dialect: "postgres",
 	logging: false,
 	alter: true,
 })

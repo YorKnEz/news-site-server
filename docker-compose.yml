@@ -2,7 +2,7 @@ version: "3.7"
 services:
   server:
     build: .
-    command: sh -c './wait-for-it.sh -t 0 db:3306 -- npm start'
+    command: sh -c './wait-for-it.sh -t 0 db:5432 -- npm start'
     depends_on:
       - db
     volumes:
@@ -13,11 +13,10 @@ services:
       - 4001:4001 # Auth Server
       - 4000:4000 # Apollo Server
   db:
-    image: mysql:8.0.26
+    image: postgres:13.0-alpine
     ports:
-      - 3306:3306
+      - 5432:5432
     environment:
-      - MYSQL_ROOT_PASSWORD=${DB_PASS}
-      - MYSQL_DATABASE=${DB_NAME}
-      - MYSQL_USER=${DB_USER}
-      - MYSQL_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
