@@ -2,11 +2,15 @@ version: "3.7"
 services:
   server:
     container_name: yorknews-server-prod
-    build: .
-    command: sh -c './wait-for-it.sh -t 0 db:5432 -- npm start'
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    command: sh -c './wait-for-it.sh -t 0 db:5432 -- node index.js'
     depends_on:
       - db
-    env_file: .env.prod
+    env_file: .env
+    environment:
+      - CLIENT_PORT=80
     ports:
       - 4001:4001 # Auth Server
       - 4000:4000 # Apollo Server
