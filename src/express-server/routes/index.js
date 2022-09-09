@@ -5,7 +5,7 @@ const { errorHandler } = require("../controllers/middleware")
 
 // routes
 const { publicUserRouter, privateUserRouter } = require("./users")
-const newsRouter = require("./news")
+const utilsRouter = require("./utils")
 
 const router = express.Router()
 
@@ -13,7 +13,7 @@ router.use("/users", publicUserRouter)
 
 router.use("/users", privateUserRouter)
 
-router.use("/news", newsRouter)
+router.use("/utils", utilsRouter)
 
 router.use(errorHandler)
 

@@ -1,6 +1,4 @@
-const express = require("express")
-
-exports.uploadThumbnail = async (req, res, next) => {
+exports.uploadPhoto = async (req, res, next) => {
 	try {
 		if (!req.files || Object.keys(req.files).lenght === 0)
 			return next({
