@@ -55,6 +55,10 @@ exports.register = async (req, res, next) => {
 		hash.update(String(req.body.password))
 		const password = hash.digest("hex")
 
+		const profilePicture = req.body?.profilePicture
+			? req.body.profilePicture
+			: "default_avatar.png"
+
 		// create the User instance
 		const user = await User.create({
 			firstName: req.body.firstName,
@@ -62,7 +66,7 @@ exports.register = async (req, res, next) => {
 			fullName: req.body.fullName,
 			email: req.body.email,
 			password,
-			profilePicture: req.body?.profilePicture,
+			profilePicture,
 			type: req.body.type,
 		})
 
