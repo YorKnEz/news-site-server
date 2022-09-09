@@ -8,7 +8,6 @@ const { sequelize } = require("../database/sequelize")
 const { formatTitle, GenericError, dataToFetch } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
-const hostIp = process.env.HOST_IP
 const port = process.env.EXPRESS_SERVER_PORT
 
 class NewsAPI extends DataSource {
@@ -334,7 +333,7 @@ class NewsAPI extends DataSource {
 			// delete the old thumbnail from the server if there is a new one
 			if (newsData.thumbnail && news.thumbnail) {
 				const thumbnail = news.thumbnail.replace(
-					`${hostIp}:${port}/public/`,
+					`http://localhost:${port}/public/`,
 					""
 				)
 
@@ -401,7 +400,7 @@ class NewsAPI extends DataSource {
 
 			if (news.thumbnail) {
 				const thumbnail = news.thumbnail.replace(
-					`${hostIp}:${port}/public/`,
+					`http://localhost:${port}/public/`,
 					""
 				)
 
