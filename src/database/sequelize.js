@@ -15,7 +15,6 @@ const sequelize = new Sequelize({
 	host: DB_HOST,
 	port: DB_PORT,
 	dialect: "postgres",
-	dialectModule: require('pg'),
 	logging: false,
 	alter: true,
 })
