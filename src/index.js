@@ -1,7 +1,7 @@
 // start dotenv
 require("dotenv").config()
 
-const { ApolloServer, AuthenticationError } = require("apollo-server")
+const { ApolloServer } = require("apollo-server")
 const axios = require("axios")
 
 const {

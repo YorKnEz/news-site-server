@@ -1,11 +1,11 @@
 const { Sequelize } = require("sequelize")
 
 // database credentials
+const DB_HOST = process.env.DB_HOST
+const DB_PORT = process.env.DB_PORT
+const DB_NAME = process.env.DB_NAME
 const DB_USER = process.env.DB_USER
 const DB_PASS = process.env.DB_PASS
-const DB_HOST = process.env.DB_HOST
-const DB_NAME = process.env.DB_NAME
-const DB_PORT = process.env.DB_PORT
 
 // connect using a connection URI
 const sequelize = new Sequelize({
@@ -14,8 +14,10 @@ const sequelize = new Sequelize({
 	password: DB_PASS,
 	host: DB_HOST,
 	port: DB_PORT,
-	dialect: "mysql",
+	dialect: "postgres",
+	dialectModule: require('pg'),
 	logging: false,
+	alter: true,
 })
 
 // test the connection to the database

@@ -1,9 +1,10 @@
 const { DataSource } = require("apollo-datasource")
 const { ForbiddenError, UserInputError } = require("apollo-server")
 const fs = require("fs")
-const { Op, Sequelize } = require("sequelize")
+const { Op } = require("sequelize")
 
 const { News, User, UserFollow } = require("../database")
+const { sequelize } = require("../database/sequelize")
 const { formatTitle, GenericError, dataToFetch } = require("../utils")
 
 // required for getting the thumbnail name of a news to delete it
@@ -237,55 +238,27 @@ class NewsAPI extends DataSource {
 		}
 	}
 
-	async searchNewsByTitle(search, fetchedResults) {
+	async searchNews(search, searchBy, fetchedResults) {
 		try {
-			const news = await News.findAll({
-				limit: dataToFetch,
-				offset: fetchedResults,
-				where: Sequelize.literal("MATCH (title) AGAINST (:search)"),
-				replacements: {
-					search: search,
-				},
-			})
-
-			return news.map(n => ({ result: n }))
+			return sequelize.query(
+				`
+				SELECT * FROM "News"
+				WHERE ${searchBy !== "all" ? searchBy : "all_search"} @@ to_tsquery(:search)
+				AND "authorId" != '-1'
+				LIMIT :limit
+				OFFSET :offset;
+				`,
+				{
+					model: News,
+					replacements: {
+						search: search.split(" ").join(" | "),
+						limit: dataToFetch,
+						offset: fetchedResults,
+					},
+				}
+			)
 		} catch (error) {
-			throw new GenericError("searchNewsByTitle", error)
-		}
-	}
-
-	// for efficiency reasons (lol), the search string must be an exact match of the content of the news, otherwise it won't find anything
-	async searchNewsByBody(search, fetchedResults) {
-		try {
-			const news = await News.findAll({
-				limit: dataToFetch,
-				offset: fetchedResults,
-				where: Sequelize.literal("MATCH (body) AGAINST (:search)"),
-				replacements: {
-					search: search,
-				},
-			})
-
-			return news.map(n => ({ result: n }))
-		} catch (error) {
-			throw new GenericError("searchNewsByBody", error)
-		}
-	}
-
-	async searchNewsByTags(search, fetchedResults) {
-		try {
-			const news = await News.findAll({
-				limit: dataToFetch,
-				offset: fetchedResults,
-				where: Sequelize.literal("MATCH (tags) AGAINST (:search)"),
-				replacements: {
-					search: search,
-				},
-			})
-
-			return news.map(n => ({ result: n }))
-		} catch (error) {
-			throw new GenericError("searchNewsByTags", error)
+			throw new GenericError("searchNews", error)
 		}
 	}
 
@@ -309,6 +282,20 @@ class NewsAPI extends DataSource {
 				type: "created",
 				link: newsData.title.replace(/(\W+)/g, "-").toLowerCase(),
 			})
+
+			await news.update({
+				all_search: sequelize.fn(
+					"to_tsvector",
+					sequelize.fn(
+						"concat",
+						sequelize.col("title"),
+						sequelize.col("body"),
+						sequelize.col("tags")
+					)
+				),
+			})
+
+			await news.save()
 
 			// increment the users writtenNews
 			await user.update({
@@ -369,6 +356,18 @@ class NewsAPI extends DataSource {
 				link: newsData.title.replace(/(\W+)/g, "-").toLowerCase(),
 			})
 
+			await news.update({
+				all_search: sequelize.fn(
+					"to_tsvector",
+					sequelize.fn(
+						"concat",
+						sequelize.col("title"),
+						sequelize.col("body"),
+						sequelize.col("tags")
+					)
+				),
+			})
+
 			// save changes
 			await news.save()
 
@@ -421,6 +420,21 @@ class NewsAPI extends DataSource {
 				body: "<p>[deleted]</p>",
 				type: "[deleted]",
 			})
+
+			await news.update({
+				all_search: sequelize.fn(
+					"to_tsvector",
+					sequelize.fn(
+						"concat",
+						sequelize.col("title"),
+						sequelize.col("body"),
+						sequelize.col("tags")
+					)
+				),
+			})
+
+			// save changes
+			await news.save()
 
 			// update the number of written news of the user
 			await user.update({

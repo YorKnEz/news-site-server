@@ -19,6 +19,7 @@ This is required for JWT token encryption
 ### Build and run the container
 
 `docker-compose build`
+
 `docker-compose up`
 
 ## Node
