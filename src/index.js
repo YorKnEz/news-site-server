@@ -16,8 +16,7 @@ const { testConnection } = require("./database/sequelize")
 const { startExpressServer } = require("./express-server")
 const { typeDefs, resolvers } = require("./schema")
 
-const hostIp = process.env.HOST_IP
-const expressPort = process.env.EXPRESS_SERVER_PORT
+const port = process.env.EXPRESS_SERVER_PORT
 
 // check connection to database
 testConnection()
@@ -44,7 +43,7 @@ async function startApolloServer() {
 				if (token) {
 					const { data } = await axios({
 						method: "get",
-						url: `${hostIp}:${expressPort}/users/login?token=${token}`,
+						url: `http://localhost:${port}/users/login?token=${token}`,
 					})
 
 					// add the token to the context

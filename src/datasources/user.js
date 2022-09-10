@@ -1,6 +1,6 @@
 const { DataSource } = require("apollo-datasource")
 const { UserInputError } = require("apollo-server")
-const { Op } = require("sequelize")
+const fs = require("fs")
 
 const { User, UserFollow } = require("../database")
 const { GenericError } = require("../utils")
@@ -155,6 +155,48 @@ class UserAPI extends DataSource {
 			return `Author ${action}ed successfully`
 		} catch (error) {
 			throw new GenericError("follow", error)
+		}
+	}
+
+	async updateProfile(userData) {
+		try {
+			// find the user of which to update the profile
+			const user = await User.findOne({
+				where: { id: userData.id },
+			})
+
+			if (!user) throw new UserInputError("Invalid input")
+
+			const updateObject = {
+				firstName: userData.firstName,
+				lastName: userData.lastName,
+				fullName: userData.firstName + " " + userData.lastName,
+			}
+
+			// if the profile picture has been updated, we need to delete the old one
+			if (
+				userData.profilePicture &&
+				userData.profilePicture !== user.profilePicture
+			) {
+				fs.unlink(`./public/${user.profilePicture}`, err => {
+					if (err) console.log(err)
+				})
+
+				updateObject.profilePicture = userData.profilePicture
+			}
+
+			// update the user data
+			await user.update(updateObject)
+
+			// save changes
+			await user.save()
+
+			return {
+				message: "Updated successfully.",
+				user,
+			}
+		} catch (error) {
+			throw new GenericError("updateProfile", error)
 		}
 	}
 }
