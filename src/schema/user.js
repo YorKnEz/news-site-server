@@ -1,6 +1,6 @@
 const { gql, AuthenticationError, UserInputError } = require("apollo-server")
 
-const { dataToFetch, GenericError } = require("../utils")
+const { dataToFetch, GenericError, handleMutationError } = require("../utils")
 
 const typeDefs = gql`
 	type Query {
@@ -14,6 +14,14 @@ const typeDefs = gql`
 
 	type Mutation {
 		follow(action: String!, id: ID!): FollowResponse!
+		updateProfile(userData: UserInput!): UpdateProfileResponse!
+	}
+
+	input UserInput {
+		id: ID!
+		firstName: String
+		lastName: String
+		profilePicture: String
 	}
 
 	type FollowResponse {
@@ -23,6 +31,17 @@ const typeDefs = gql`
 		success: Boolean!
 		"Human-readable message for the UI"
 		message: String!
+	}
+
+	type UpdateProfileResponse {
+		"Similar to HTTP status code, represents the status of the mutation"
+		code: Int!
+		"Indicated whether the mutation was successful"
+		success: Boolean!
+		"Human-readable message for the UI"
+		message: String!
+		"The new user object"
+		user: Author
 	}
 
 	"Author data to be displayed on a news card"
@@ -118,6 +137,30 @@ const resolvers = {
 				}
 			} catch (error) {
 				throw new GenericError("follow", error)
+			}
+		},
+		updateProfile: async (_, { userData }, { dataSources, token, userId }) => {
+			try {
+				if (!token)
+					throw new AuthenticationError("You must be authenticated to do this.")
+
+				if (userData.id != userId) throw new UserInputError("You can't do this")
+
+				const { message, user } = await dataSources.userAPI.updateProfile(
+					userData
+				)
+
+				return {
+					code: 200,
+					success: true,
+					message,
+					user,
+				}
+			} catch (error) {
+				return {
+					...handleMutationError("updateProfile", error),
+					user: {},
+				}
 			}
 		},
 	},
