@@ -7,7 +7,7 @@ const typeDefs = gql`
 		"Gets user info about a user"
 		user(id: ID!): Author!
 		"Gets all the followed authors of a user"
-		followedAuthors(offset: Int): [Author!]
+		followedAuthors(offset: Int, userId: ID!): [Author!]
 		"Get top 5 best authors on the db"
 		bestAuthors: [Author!]
 	}
@@ -91,7 +91,7 @@ const resolvers = {
 				throw new GenericError("user", error)
 			}
 		},
-		followedAuthors: async (_, { offset }, { dataSources, token, userId }) => {
+		followedAuthors: async (_, { offset, userId }, { dataSources, token }) => {
 			try {
 				if (!token)
 					throw new AuthenticationError("You must be authenticated to do this.")
