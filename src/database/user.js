@@ -44,7 +44,7 @@ const User = sequelize.define("User", {
 	profilePicture: {
 		type: DataTypes.STRING,
 		allowNull: true,
-		defaultValue: "default",
+		defaultValue: "default_avatar.png",
 	},
 	// the type of the user: "author" or "user"
 	type: {

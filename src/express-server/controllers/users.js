@@ -55,9 +55,10 @@ exports.register = async (req, res, next) => {
 		hash.update(String(req.body.password))
 		const password = hash.digest("hex")
 
-		const profilePicture = req.body?.profilePicture
-			? req.body.profilePicture
-			: "default_avatar.png"
+		const profilePicture =
+			typeof req.body.profilePicture === "string"
+				? req.body.profilePicture
+				: "default_avatar.png"
 
 		// create the User instance
 		const user = await User.create({

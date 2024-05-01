@@ -1,4 +1,4 @@
 node_modules
 public
-.idea
-.env*
+**/.idea
+**/.env*
